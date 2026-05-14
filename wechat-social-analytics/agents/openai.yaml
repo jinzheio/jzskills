@@ -1,0 +1,4 @@
+interface:
+  display_name: "微信社交统计"
+  short_description: "用 wx-cli 统计群活跃、互动拓扑、私聊交流、共同群和每日群总结"
+  default_prompt: "使用 $wechat-social-analytics 基于本地 wx-cli 数据统计微信群活跃 top 10、群互动拓扑、过去 N 天与我交流最多的人、共同群最多的好友，并生成指定群每日消息总结。"
