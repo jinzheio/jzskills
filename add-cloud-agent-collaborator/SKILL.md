@@ -1,7 +1,7 @@
 ---
 name: add-cloud-agent-collaborator
-version: "1.1.0"
-description: "当用户在本地/admin 侧要求为 OpenClaw、Hermes 或 cloud agent 增加 GitHub agent 合作者时使用。默认从本机未跟踪配置读取 owner 与 agent GitHub 账号，也支持用户临时指定账号。只设置 GitHub 权限边界：agent fork 可写、upstream 只读。不要用于 Vercel、Neon、服务器 clone、运行时登录、push、preview 或 PR 实作。"
+version: "1.1.1"
+description: "当用户在本地/admin 侧要求为 OpenClaw、Hermes 或 cloud agent 增加 GitHub agent 合作者时使用。未提供 agent 账号时，直接使用本机未跟踪配置中的默认 owner 与 agent GitHub 账号；也支持用户临时指定账号。只设置 GitHub 权限边界：agent fork 可写、upstream 只读。不要用于 Vercel、Neon、服务器 clone、运行时登录、push、preview 或 PR 实作。"
 ---
 
 # Add Cloud Agent Collaborator
@@ -12,6 +12,7 @@ description: "当用户在本地/admin 侧要求为 OpenClaw、Hermes 或 cloud 
 
 - 默认读取 `${ADD_CLOUD_AGENT_COLLABORATOR_CONFIG:-$HOME/.config/skills/add-cloud-agent-collaborator.env}`。
 - 必填键：`OWNER_ACCOUNT`、`AGENT_GITHUB`、`AGENT_EMAIL`。
+- 用户没有提供 agent 账号时，使用配置里的 `AGENT_GITHUB` 和 `AGENT_EMAIL`，不要再询问。
 - 不要把本机配置文件提交到仓库，也不要把具体账号值写进这个 skill。
 
 ## 本机 GitHub 账号规则
@@ -66,7 +67,9 @@ test -f "$CONFIG_FILE" && set -a && . "$CONFIG_FILE" && set +a
 : "${AGENT_EMAIL:?Set AGENT_EMAIL in local config or the shell environment}"
 ```
 
-如果配置缺失，询问用户 owner 账号和 agent 账号，然后只在当前 shell 中使用这些变量。不要把账号值写入 versioned skill。
+如果用户没有指定 agent GitHub 账号或邮箱，使用配置中的 `AGENT_GITHUB` 和 `AGENT_EMAIL`。
+
+只有配置文件缺失，或缺少 `OWNER_ACCOUNT`、`AGENT_GITHUB`、`AGENT_EMAIL` 任一必填键时，才询问用户缺失项，并只在当前 shell 中使用这些变量。不要把账号值写入 versioned skill。
 
 ## GitHub 最小权限
 
