@@ -30,6 +30,8 @@ assert.match(topology.mermaid, /graph TD/);
 
 const myTop = run(["my-top", "--days", "10"]);
 assert.equal(myTop.question, "private_chat_top");
+assert.equal(myTop.scanned_private_sessions, 3);
+assert.equal(myTop.skipped_private_sessions, 1);
 assert.equal(myTop.top[0].display, "张三");
 assert.equal(myTop.top[0].message_count, 3);
 

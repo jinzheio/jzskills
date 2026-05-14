@@ -7,6 +7,7 @@ const sessions = [
   { chat: "技术群", username: "room2@chatroom", chat_type: "group" },
   { chat: "张三", username: "wxid_zhang", chat_type: "private" },
   { chat: "李四", username: "wxid_li", chat_type: "private" },
+  { chat: "品牌入口", username: "brandservicesessionholder", chat_type: "private" },
   { chat: "公众号", username: "gh_demo", chat_type: "official_account" },
 ];
 
@@ -74,6 +75,9 @@ if (command === "sessions") {
   const chat = args[1];
   if (chat === "产品群" || chat === "room1@chatroom") {
     print(groupMessages);
+  } else if (chat === "品牌入口" || chat === "brandservicesessionholder") {
+    console.error("错误: 找不到 品牌入口 的消息记录");
+    process.exit(1);
   } else {
     print(privateHistory[chat] || []);
   }

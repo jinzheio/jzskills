@@ -100,6 +100,8 @@ wx history "<display>" --json --since YYYY-MM-DD -n 5000
 
 如果用户问“谁找我最多”，说明当前脚本统计的是双方交流量，不是只统计对方发给我的消息。
 
+注意：`wx sessions` 可能把部分品牌号、折叠入口或自定义 username 标成 `private`，但这些会话没有普通私聊消息表。脚本会跳过 `wx history` 不可读的会话，并在 `skipped_private_sessions` 里计数。不要把跳过会话解释成“过去 N 天没有交流”。
+
 ### 共同群 top 10
 
 默认从最近群会话扫描：
