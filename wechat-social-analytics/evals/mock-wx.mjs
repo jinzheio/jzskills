@@ -19,10 +19,18 @@ const groupMessages = [
 ];
 
 const privateHistory = {
+  "张三": [
+    { time: "2026-05-13 10:00", timestamp: 1778628000, type: "text", content: "早" },
+    { time: "2026-05-13 10:05", timestamp: 1778628300, type: "text", content: "确认一下" },
+    { time: "2026-05-13 10:08", timestamp: 1778628480, type: "text", content: "好" },
+  ],
   wxid_zhang: [
     { time: "2026-05-13 10:00", timestamp: 1778628000, type: "text", content: "早" },
     { time: "2026-05-13 10:05", timestamp: 1778628300, type: "text", content: "确认一下" },
     { time: "2026-05-13 10:08", timestamp: 1778628480, type: "text", content: "好" },
+  ],
+  "李四": [
+    { time: "2026-05-13 11:00", timestamp: 1778631600, type: "text", content: "收到" },
   ],
   wxid_li: [
     { time: "2026-05-13 11:00", timestamp: 1778631600, type: "text", content: "收到" },

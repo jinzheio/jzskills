@@ -176,8 +176,13 @@ function myTop() {
   const since = opt("since") || sinceFromDays(days);
   const sessions = wx(["sessions", "--json", "-n", String(sessionsLimit)]).filter((s) => s.chat_type === "private");
   const rows = [];
+  let skipped = 0;
   for (const s of sessions) {
-    const messages = wx(["history", s.username || s.chat, "--json", "--since", String(since), "-n", String(limitPerChat)]);
+    const messages = historyForSession(s, since, limitPerChat);
+    if (!messages) {
+      skipped += 1;
+      continue;
+    }
     if (!messages.length) continue;
     rows.push({
       display: s.chat,
@@ -193,9 +198,22 @@ function myTop() {
     since,
     days,
     scanned_private_sessions: sessions.length,
+    skipped_private_sessions: skipped,
     method: "private chat total message count",
     top: rows.slice(0, intOpt("top", 10)),
   }, null, 2));
+}
+
+function historyForSession(session, since, limit) {
+  const candidates = [session.chat, session.username].filter(Boolean);
+  for (const chat of candidates) {
+    try {
+      return wx(["history", String(chat), "--json", "--since", String(since), "-n", String(limit)]);
+    } catch {
+      continue;
+    }
+  }
+  return null;
 }
 
 function sharedGroups() {
