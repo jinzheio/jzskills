@@ -1,0 +1,3 @@
+display_name: 快速下载链接
+short_description: 上传 software 文件并返回 3 天临时下载链接。
+default_prompt: 为 software/ 目录新增文件生成快速下载链接。
