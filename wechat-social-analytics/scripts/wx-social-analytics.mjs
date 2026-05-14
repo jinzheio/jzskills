@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 const args = process.argv.slice(2);
 const mode = args.shift();
@@ -221,6 +224,7 @@ function sharedGroups() {
   const topN = intOpt("top", 10);
   const sessions = wx(["sessions", "--json", "-n", String(sessionsLimit)]).filter((s) => s.chat_type === "group");
   const people = new Map();
+  const selfUsername = opt("self") || inferSelfUsername();
   for (const group of sessions) {
     let members;
     try {
@@ -231,6 +235,7 @@ function sharedGroups() {
     }
     for (const m of members) {
       if (!m.username || !m.display) continue;
+      if (selfUsername && m.username === selfUsername) continue;
       const prev = people.get(m.username) || {
         username: m.username,
         display: m.display,
@@ -249,10 +254,22 @@ function sharedGroups() {
   console.log(JSON.stringify({
     question: "shared_groups_top",
     scanned_group_sessions: sessions.length,
+    excluded_self: selfUsername || "",
     method: "scan recent group sessions and aggregate wx members",
     coverage_note: "wx sessions is recent-session based; provide a group list for full coverage.",
     top,
   }, null, 2));
+}
+
+function inferSelfUsername() {
+  try {
+    const configPath = path.join(os.homedir(), ".wx-cli", "config.json");
+    const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    const base = path.basename(path.dirname(config.db_dir || ""));
+    return base.split("_")[0] || "";
+  } catch {
+    return "";
+  }
 }
 
 function groupSummary() {

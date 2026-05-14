@@ -35,10 +35,11 @@ assert.equal(myTop.skipped_private_sessions, 1);
 assert.equal(myTop.top[0].display, "张三");
 assert.equal(myTop.top[0].message_count, 3);
 
-const sharedGroups = run(["shared-groups"]);
+const sharedGroups = run(["shared-groups", "--self", "wxid_alice"]);
 assert.equal(sharedGroups.question, "shared_groups_top");
 assert.equal(sharedGroups.top[0].display, "Bob");
 assert.equal(sharedGroups.top[0].shared_group_count, 2);
+assert.equal(sharedGroups.top.some((item) => item.username === "wxid_alice"), false);
 
 const summary = run(["group-summary", "--chat", "产品群", "--date", "2026-05-13"]);
 assert.equal(summary.question, "daily_group_summary_source");
