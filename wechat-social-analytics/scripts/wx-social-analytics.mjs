@@ -11,6 +11,7 @@ function usage() {
   console.error(`Usage:
   wx-social-analytics.mjs group-top --chat <name> [--since YYYY-MM-DD] [--until YYYY-MM-DD]
   wx-social-analytics.mjs group-topology --chat <name> [--since YYYY-MM-DD] [--until YYYY-MM-DD] [--limit 5000] [--window-minutes 10] [--mermaid]
+  wx-social-analytics.mjs personal-group-find --name <name> [--sessions 10000] [--limit 100]
   wx-social-analytics.mjs my-top [--days 10] [--sessions 300] [--limit-per-chat 5000]
   wx-social-analytics.mjs shared-groups [--sessions 1000] [--top 10]
   wx-social-analytics.mjs group-summary --chat <name> [--date YYYY-MM-DD] [--limit 5000] [--content-limit 500]`);
@@ -43,6 +44,44 @@ function wx(commandArgs) {
   }
   const stdout = result.stdout.trim();
   return stdout ? JSON.parse(stdout) : null;
+}
+
+function sqliteRows(dbPath, sql) {
+  const result = spawnSync("sqlite3", ["-json", dbPath, sql], {
+    encoding: "utf8",
+    maxBuffer: 1024 * 1024 * 200,
+  });
+  if (result.error || result.status !== 0) return [];
+  const stdout = result.stdout.trim();
+  if (!stdout) return [];
+  try {
+    return JSON.parse(stdout);
+  } catch {
+    return [];
+  }
+}
+
+function sqlQuote(value) {
+  return `'${String(value).replaceAll("'", "''")}'`;
+}
+
+function cacheDbPaths() {
+  const cacheDir = path.join(os.homedir(), ".wx-cli", "cache");
+  try {
+    return fs.readdirSync(cacheDir)
+      .filter((name) => name.endsWith(".db"))
+      .map((name) => path.join(cacheDir, name));
+  } catch {
+    return [];
+  }
+}
+
+function dbsWithTable(tableName) {
+  const quoted = sqlQuote(tableName);
+  return cacheDbPaths().filter((dbPath) => {
+    const rows = sqliteRows(dbPath, `select name from sqlite_master where type='table' and name=${quoted} limit 1;`);
+    return rows.length > 0;
+  });
 }
 
 function sinceFromDays(days) {
@@ -170,6 +209,164 @@ function groupTopology() {
   };
   if (opt("mermaid") === true) out.mermaid = mermaid(edges);
   console.log(JSON.stringify(out, null, 2));
+}
+
+function personalGroupFind() {
+  const name = opt("name") || opt("chat");
+  if (!name || name === true) usage();
+  const limit = intOpt("limit", 100);
+  const sessionsLimit = intOpt("sessions", 10000);
+  const renameHits = findRenameHits(String(name), limit);
+  const candidates = new Map();
+  const addCandidate = (username, source, display = "") => {
+    if (!username || !String(username).includes("@chatroom")) return;
+    const key = String(username);
+    const prev = candidates.get(key) || { username: key, sources: new Set(), display };
+    prev.sources.add(source);
+    if (display && !prev.display) prev.display = display;
+    candidates.set(key, prev);
+  };
+
+  for (const row of findSessionCandidates(String(name), sessionsLimit)) {
+    addCandidate(row.username || row.chat, "wx sessions", row.chat || "");
+  }
+  for (const row of findSessionTableCandidates(String(name))) {
+    addCandidate(row.username, "SessionTable", "");
+  }
+  for (const row of findContactCandidates(String(name))) {
+    addCandidate(row.username, "contact", row.display || row.nick_name || row.remark || "");
+  }
+
+  const matches = Array.from(candidates.values())
+    .map((candidate) => validatePersonalGroupCandidate(candidate, String(name), limit))
+    .filter(Boolean)
+    .sort((a, b) => (b.last_timestamp || 0) - (a.last_timestamp || 0) || a.username.localeCompare(b.username));
+
+  console.log(JSON.stringify({
+    question: "personal_group_find",
+    name: String(name),
+    method: "rename_system_message_then_chatroom_resolution",
+    rename_hits: renameHits,
+    matches,
+    unresolved_rename_chats: renameHits
+      .map((hit) => hit.chat)
+      .filter((chat) => !matches.some((match) => match.rename_source_chats.includes(chat)))
+      .filter((chat) => {
+        const hit = renameHits.find((row) => row.chat === chat);
+        if (!hit) return true;
+        return !matches.some((match) => match.rename_messages.some((msg) => (
+          msg.timestamp === hit.timestamp && msg.content === hit.content
+        )));
+      }),
+    note: "Use matches[].username as --chat for history, stats, members, and summaries.",
+  }, null, 2));
+}
+
+function findRenameHits(name, limit) {
+  let rows = [];
+  try {
+    rows = wx(["search", name, "--json", "--type", "system", "-n", String(limit)]) || [];
+  } catch {
+    try {
+      rows = wx(["search", name, "--json", "-n", String(limit)]) || [];
+    } catch {
+      rows = [];
+    }
+  }
+  return rows
+    .filter((row) => String(row.content || "").includes(name) && String(row.content || "").includes("修改群名"))
+    .map((row) => ({
+      chat: row.chat || "",
+      time: row.time || "",
+      timestamp: row.timestamp || 0,
+      content: row.content || "",
+      type: row.type || "",
+    }));
+}
+
+function findSessionCandidates(name, sessionsLimit) {
+  try {
+    return (wx(["sessions", "--json", "-n", String(sessionsLimit)]) || [])
+      .filter((row) => row.chat_type === "group" && (
+        String(row.chat || "").includes(name) ||
+        String(row.summary || "").includes(name) ||
+        String(row.username || "").includes(name)
+      ));
+  } catch {
+    return [];
+  }
+}
+
+function findSessionTableCandidates(name) {
+  const like = sqlQuote(`%${name}%`);
+  const rows = [];
+  for (const dbPath of dbsWithTable("SessionTable")) {
+    rows.push(...sqliteRows(dbPath, `
+      select username, summary, last_timestamp
+      from SessionTable
+      where username like '%@chatroom' and summary like ${like}
+      limit 50;
+    `));
+  }
+  return rows;
+}
+
+function findContactCandidates(name) {
+  const like = sqlQuote(`%${name}%`);
+  const rows = [];
+  for (const dbPath of dbsWithTable("contact")) {
+    rows.push(...sqliteRows(dbPath, `
+      select username,
+             coalesce(nullif(remark, ''), nullif(nick_name, ''), username) as display,
+             remark,
+             nick_name
+      from contact
+      where username like '%@chatroom'
+        and (remark like ${like} or nick_name like ${like})
+      limit 50;
+    `));
+  }
+  return rows;
+}
+
+function validatePersonalGroupCandidate(candidate, name, limit) {
+  let history;
+  try {
+    history = wx(["history", candidate.username, "--json", "-n", String(limit)]) || [];
+  } catch {
+    return null;
+  }
+  const renameMessages = history
+    .filter((msg) => String(msg.content || "").includes(name) && String(msg.content || "").includes("修改群名"))
+    .map((msg) => ({
+      chat: msg.chat || "",
+      local_id: msg.local_id,
+      time: msg.time || "",
+      timestamp: msg.timestamp || 0,
+      content: msg.content || "",
+    }));
+  const matchedByHistory = renameMessages.length > 0 || history.some((msg) => String(msg.content || "").includes(name));
+  const matchedByDisplay = String(candidate.display || "").includes(name);
+  if (!matchedByHistory && !matchedByDisplay) return null;
+  const first = history[0] || {};
+  const last = history[history.length - 1] || {};
+  return {
+    username: candidate.username,
+    display: candidate.display || "",
+    sources: Array.from(candidate.sources).sort(),
+    message_count_sampled: history.length,
+    first_time: first.time || "",
+    last_time: last.time || "",
+    last_timestamp: last.timestamp || 0,
+    rename_source_chats: renameMessages.map((msg) => msg.chat).filter(Boolean),
+    rename_messages: renameMessages,
+    recent_messages: history.slice(-5).map((msg) => ({
+      time: msg.time || "",
+      sender: msg.sender || "",
+      type: msg.type || "",
+      content: String(msg.content || "").slice(0, 160),
+    })),
+  };
 }
 
 function myTop() {
@@ -320,6 +517,7 @@ function groupSummary() {
 try {
   if (mode === "group-top") groupTop();
   else if (mode === "group-topology") groupTopology();
+  else if (mode === "personal-group-find") personalGroupFind();
   else if (mode === "my-top") myTop();
   else if (mode === "shared-groups") sharedGroups();
   else if (mode === "group-summary") groupSummary();

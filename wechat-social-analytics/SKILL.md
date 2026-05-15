@@ -8,6 +8,8 @@ description: "当用户需要用本地微信数据回答群活跃成员、群互
 
 基于 `wx-cli` 查询本地微信数据，回答微信社交关系和群聊活跃度问题。
 
+当用户指定找“个人群”时，先用 `personal-group-find` 按群改名系统消息找群，再把返回的 `matches[].username` 用于 `history`、`stats`、`members` 或后续总结。
+
 ## 可行性边界
 
 先确认 `wx` 可用：
@@ -26,6 +28,12 @@ wx sessions --json -n 5
 
 涉及微信数据时，说明数据来自本机缓存；微信未同步、未下载、已清理的数据不会被统计。
 
+## 运行注意事项
+
+- 避免并发运行多个 `wx` 命令，尤其是刚执行过 `wx init --force`、刚清理 cache 或 daemon 未启动时。`wx-cli` 会在后台解密并缓存数据库，并发触发 daemon/cache 重建时可能出现 `database disk image is malformed`。遇到该错误，先运行 `wx daemon stop`，再单线程重跑命令。
+- 如果微信界面能看到旧消息，但 `wx history` / `wx search` 查不到，通常是旧消息所在的 `message_1.db`、`message_2.db`、`message_3.db` 等分片密钥没有被提取。让用户在微信里翻到旧记录并保持登录，再执行 `sudo wx init --force`，确认 `~/.wx-cli/all_keys.json` 里包含对应 `message/message_*.db` 密钥，然后停止 daemon 并重跑查询。
+- `wx stats` 的 `top_senders` 可能把同一个显示名拆成多行，例如同名、改名、不同内部 sender id 显示为同一昵称。回答活跃 Top 时保留原始结果，并提示“同显示名可能未合并”；如用户需要合并口径，再基于显示名做二次汇总。
+
 ## 常用脚本
 
 脚本路径：
@@ -43,13 +51,16 @@ node /Users/hwang/Projects/jzskills/wechat-social-analytics/scripts/wx-social-an
 # 2. 一个群里互动最多拓扑图
 node /Users/hwang/Projects/jzskills/wechat-social-analytics/scripts/wx-social-analytics.mjs group-topology --chat "AI群" --since 2026-05-01 --limit 5000 --mermaid
 
-# 3. 过去 10 天谁和我交流最多
+# 3. 按改名记录找个人群
+node /Users/hwang/Projects/jzskills/wechat-social-analytics/scripts/wx-social-analytics.mjs personal-group-find --name "杨懿辅导自记录"
+
+# 4. 过去 10 天谁和我交流最多
 node /Users/hwang/Projects/jzskills/wechat-social-analytics/scripts/wx-social-analytics.mjs my-top --days 10 --sessions 300
 
-# 4. 和我共享最多群的好友 top 10
+# 5. 和我共享最多群的好友 top 10
 node /Users/hwang/Projects/jzskills/wechat-social-analytics/scripts/wx-social-analytics.mjs shared-groups --sessions 1000
 
-# 5. 指定群每日消息总结，默认总结昨天
+# 6. 指定群每日消息总结，默认总结昨天
 node /Users/hwang/Projects/jzskills/wechat-social-analytics/scripts/wx-social-analytics.mjs group-summary --chat "AI群"
 
 # 指定日期
@@ -84,6 +95,22 @@ wx members "<群名>" --json
 - 默认窗口 `10` 分钟，可用 `--window-minutes` 调整。
 
 输出时标注 `method: temporal_adjacency_and_quote`，避免把它解释为确定关系。
+
+### 个人群查找
+
+当用户说“找个人群 <群名>”“查个人群 <群名>”或指定“个人群”口径时，先运行：
+
+```bash
+node /Users/hwang/Projects/jzskills/wechat-social-analytics/scripts/wx-social-analytics.mjs personal-group-find --name "<群名>"
+```
+
+查找口径：
+
+- 用 `wx search <群名> --type system` 找“你修改群名为……”系统消息。
+- 从最近会话、`SessionTable` 和 `contact` 缓存找候选 `@chatroom`。
+- 对候选 `@chatroom` 执行 `wx history` 回验改名记录。
+
+输出里的 `matches[].username` 是后续命令可用的群 ID。若 `rename_hits` 有结果但 `matches` 为空，只说明找到了改名消息，暂未解析出可用群 ID。
 
 ### 过去 N 天和我交流最多
 
