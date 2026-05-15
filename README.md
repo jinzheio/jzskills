@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-Reusable agent skills for publishing a website, connecting a custom domain, and setting up search indexing.
+Reusable agent skills for site launch work, code review and push workflows, file delivery, billing analysis, and local WeChat data analysis.
 
 This repository is a public skill pack. Each skill folder lives at the repository root and contains its own `SKILL.md` and optional bundled resources.
 
@@ -17,6 +17,9 @@ This repository is a public skill pack. Each skill folder lives at the repositor
 | `add-cloud-agent-collaborator` | Prepare fork-only GitHub permissions for a cloud-agent developer account. |
 | `commit-code` | Review workspace changes and create scoped commits after confirmation. |
 | `push-code` | Verify, push, and run post-push indexing sync. |
+| `get-fast-download` | Upload files from `software/` and return temporary fast download links. |
+| `vercel-cost-analysis` | Explain Vercel usage, billed cost, Pro fees, and receipt/card charge differences. |
+| `wechat-social-analytics` | Analyze local WeChat data with `wx-cli`: group activity, interaction topology, private-chat volume, shared groups, and daily group summaries. |
 
 Recommended sequence for a new site:
 
@@ -59,6 +62,9 @@ cp -R add-indexnow ~/.codex/skills/
 cp -R add-cloud-agent-collaborator ~/.codex/skills/
 cp -R commit-code ~/.codex/skills/
 cp -R push-code ~/.codex/skills/
+cp -R get-fast-download ~/.codex/skills/
+cp -R vercel-cost-analysis ~/.codex/skills/
+cp -R wechat-social-analytics ~/.codex/skills/
 ```
 
 If your runner can read this repository directly, no copy step is needed.
@@ -97,6 +103,18 @@ Use $commit-code to review and commit these changes.
 Use $push-code to verify, push, and sync changed public URLs.
 ```
 
+```text
+Use $get-fast-download to create temporary download links for files in software/.
+```
+
+```text
+Use $vercel-cost-analysis to reconcile this Vercel receipt with usage data.
+```
+
+```text
+Use $wechat-social-analytics to summarize this WeChat group and find the most active members.
+```
+
 ## Configuration
 
 The skills use authenticated CLIs, API tokens, browser sessions, or environment variables depending on the task.
@@ -118,6 +136,11 @@ Prepare only the credentials needed for the skills you run.
 | `index-onboarding` | Final public domain | Analytics credentials, Google OAuth/ADC for Search Console and Site Verification, Cloudflare DNS token for verification TXT records, `BING_WEBMASTER_API_KEY`, `SITE_INTEGRATIONS_CONFIG` with per-domain Clarity config, or `CLARITY_ID` and `CLARITY_TOKEN` |
 | `add-indexnow` | Writable repo with a known final host | `INDEXNOW_KEY` only if overriding the generated key; otherwise the skill creates a fresh key |
 | `add-cloud-agent-collaborator` | GitHub CLI auth for `OWNER_ACCOUNT`; agent account details from local config or user input | `ADD_CLOUD_AGENT_COLLABORATOR_CONFIG`, `AGENT_GITHUB`, `AGENT_EMAIL` |
+| `commit-code` | Git repository with local changes | None |
+| `push-code` | Clean committed branch and remote push access | IndexNow/Search Console credentials only for public site URL sync |
+| `get-fast-download` | A target repo with a `software/` directory and public files safe to upload | Network access to `storage.to`; existing `.fast-download-links.tsv` to skip uploaded files |
+| `vercel-cost-analysis` | Vercel CLI auth and access to the relevant team/project usage | Receipt date, billing cycle day, platform fee override |
+| `wechat-social-analytics` | Installed `wx-cli`, logged-in WeChat, extracted local database keys | `sudo wx init --force` after scrolling old history when older message shards need keys |
 
 Common variables:
 
@@ -133,6 +156,7 @@ Common variables:
 - `SITE_INTEGRATIONS_CONFIG`: optional domain-to-repo and integration metadata map. Clarity first reads per-domain `clarity.project_id` and `clarity.token` entries from this map. If the map is missing or lacks Clarity for the target domain, `index-onboarding` checks `CLARITY_ID` and `CLARITY_TOKEN` in the current environment. If neither source has both values, Clarity is skipped and reported.
 - `CLARITY_ID` and `CLARITY_TOKEN`: optional Clarity project id and project-level Data Export API token for the current run.
 - `ADD_CLOUD_AGENT_COLLABORATOR_CONFIG`: optional local env file for cloud-agent GitHub permission setup.
+- `wx` / `wx-cli`: local WeChat data CLI used by `wechat-social-analytics`. The skill reads only local cached WeChat data; unsynced or unkeyed message shards are not available until WeChat loads them and `wx init --force` extracts the keys.
 
 Example `SITE_INTEGRATIONS_CONFIG` file:
 

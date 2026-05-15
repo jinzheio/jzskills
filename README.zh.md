@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-用于发布网站、绑定自定义域名、接入搜索索引的 agent skills。
+用于网站发布、代码提交推送、文件下载、账单分析和本地微信数据分析的 agent skills。
 
 这是一个公开 skill pack。项目根目录下的每个 skill 目录都是独立 skill，包含自己的 `SKILL.md` 和可选资源文件。
 
@@ -17,6 +17,9 @@
 | `add-cloud-agent-collaborator` | 为 cloud-agent 开发账号准备 fork-only GitHub 权限。 |
 | `commit-code` | Review 工作区变更，确认后按范围提交。 |
 | `push-code` | 验证、推送代码，并同步变更页面的索引。 |
+| `get-fast-download` | 上传 `software/` 下的文件，生成临时快速下载链接。 |
+| `vercel-cost-analysis` | 解释 Vercel usage、billed cost、Pro 固定费和信用卡扣款差异。 |
+| `wechat-social-analytics` | 基于本地 `wx-cli` 数据分析微信群活跃成员、互动拓扑、私聊交流量、共同群和每日群总结。 |
 
 新网站的推荐顺序：
 
@@ -59,6 +62,9 @@ cp -R add-indexnow ~/.codex/skills/
 cp -R add-cloud-agent-collaborator ~/.codex/skills/
 cp -R commit-code ~/.codex/skills/
 cp -R push-code ~/.codex/skills/
+cp -R get-fast-download ~/.codex/skills/
+cp -R vercel-cost-analysis ~/.codex/skills/
+cp -R wechat-social-analytics ~/.codex/skills/
 ```
 
 如果 runner 能直接读取这个仓库，不需要复制。
@@ -70,31 +76,43 @@ cp -R push-code ~/.codex/skills/
 在 agent 中按名称调用 skill：
 
 ```text
-Use $upstart-site to publish this local website.
+使用 $upstart-site 发布这个本地网站。
 ```
 
 ```text
-Use $new-domain-launch to connect example.com to this deployed site.
+使用 $new-domain-launch 把 example.com 绑定到这个已部署网站。
 ```
 
 ```text
-Use $index-onboarding to set up analytics and search indexing for example.com.
+使用 $index-onboarding 为 example.com 接入统计和搜索索引。
 ```
 
 ```text
-Use $add-indexnow to add IndexNow support to this web app.
+使用 $add-indexnow 为这个 Web app 添加 IndexNow 支持。
 ```
 
 ```text
-Use $add-cloud-agent-collaborator to prepare fork-only GitHub access for this repo.
+使用 $add-cloud-agent-collaborator 为这个仓库准备 fork-only GitHub 权限。
 ```
 
 ```text
-Use $commit-code to review and commit these changes.
+使用 $commit-code review 并提交这些变更。
 ```
 
 ```text
-Use $push-code to verify, push, and sync changed public URLs.
+使用 $push-code 验证、推送，并同步变更过的公开 URL。
+```
+
+```text
+使用 $get-fast-download 为 software/ 里的文件生成临时下载链接。
+```
+
+```text
+使用 $vercel-cost-analysis 用 usage 数据核对这张 Vercel receipt。
+```
+
+```text
+使用 $wechat-social-analytics 总结这个微信群，并找出最活跃成员。
 ```
 
 ## 配置
@@ -118,6 +136,11 @@ cp .env.example .env
 | `index-onboarding` | 正式可访问的域名 | 统计服务凭证、Google OAuth/ADC、Cloudflare DNS token、`BING_WEBMASTER_API_KEY`、带各域名 Clarity 配置的 `SITE_INTEGRATIONS_CONFIG`，或 `CLARITY_ID` 和 `CLARITY_TOKEN` |
 | `add-indexnow` | 可写的项目仓库和已确定的正式域名 | 只有在覆盖自动生成 key 时才需要 `INDEXNOW_KEY` |
 | `add-cloud-agent-collaborator` | `OWNER_ACCOUNT` 的 GitHub CLI 登录；agent 账号信息来自本机配置或用户输入 | `ADD_CLOUD_AGENT_COLLABORATOR_CONFIG`、`AGENT_GITHUB`、`AGENT_EMAIL` |
+| `commit-code` | 有本地变更的 Git 仓库 | 无 |
+| `push-code` | 已提交的干净分支和远端 push 权限 | 只有公开站点 URL 同步需要 IndexNow/Search Console 凭证 |
+| `get-fast-download` | 目标仓库存在 `software/` 目录，且文件适合公开临时上传 | 可访问 `storage.to`；已有 `.fast-download-links.tsv` 用于跳过已上传文件 |
+| `vercel-cost-analysis` | Vercel CLI 登录，并有目标 team/project usage 权限 | receipt 日期、billing cycle day、平台费覆盖值 |
+| `wechat-social-analytics` | 已安装 `wx-cli`，微信已登录，本地数据库密钥已提取 | 需要读取更早历史时，先在微信里翻到旧记录，再执行 `sudo wx init --force` 提取旧分片密钥 |
 
 常用变量：
 
@@ -133,6 +156,7 @@ cp .env.example .env
 - `SITE_INTEGRATIONS_CONFIG`：可选的域名到仓库和集成元数据映射。Clarity 先读取这里的各域名 `clarity.project_id` 和 `clarity.token`。如果映射不存在，或目标域名没有 Clarity 配置，`index-onboarding` 会检查当前环境变量里的 `CLARITY_ID` 和 `CLARITY_TOKEN`。两个来源都缺少完整信息时，跳过 Clarity 并在汇总里说明。
 - `CLARITY_ID` 和 `CLARITY_TOKEN`：可选的 Clarity project ID 和项目级 Data Export API token，用于当前运行。
 - `ADD_CLOUD_AGENT_COLLABORATOR_CONFIG`：cloud-agent GitHub 权限设置使用的本机 env 文件路径。
+- `wx` / `wx-cli`：`wechat-social-analytics` 使用的本地微信数据 CLI。该 skill 只读取本机缓存；微信未同步、未加载或尚未提取密钥的历史分片不会出现在结果里。
 
 `SITE_INTEGRATIONS_CONFIG` 文件示例：
 
