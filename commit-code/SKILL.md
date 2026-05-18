@@ -1,12 +1,38 @@
 ---
 name: commit-code
-version: "1.1.0"
-description: "当用户要求 review 并提交本地工作区变更时使用，包括 commit this、帮我 commit、确认提交、split these changes into commits。先 review diff 并报告风险，等待用户明确确认，再按功能创建干净的 scoped commits。除非用户同时要求 push，否则不要推送。"
+version: "1.2.0"
+description: "当用户要求 review 并提交本地工作区变更时使用，包括 commit this、帮我 commit、确认提交、split these changes into commits。必须优先分派 worker subagent 在独立 context window 中执行 review 与提交流程。先 review diff 并报告风险，等待用户明确确认，再按功能创建干净的 scoped commits。除非用户同时要求 push，否则不要推送。"
 ---
 
 # 代码 Review 与提交
 
 对工作区变更做轻量 code review，等待用户确认后，按功能拆分并提交。
+
+## Subagent 启动协议
+
+触发本 skill 后，父 agent 必须优先分派一个 `worker` subagent 执行本 skill，以获得独立的 context window。
+
+父 agent 只负责：
+
+- 创建或复用同一个 worker subagent
+- 向 worker 传递仓库绝对路径、用户原始请求、本 skill 文件路径和当前确认状态
+- 等待 worker 返回 review 报告、commit 计划、执行结果或 blocker
+- 将 worker 的确认问题转述给用户
+- 用户确认后，把确认消息发送给同一个 worker 继续执行
+- 根据 worker 结果向用户做最终汇报
+
+worker subagent 的初始任务必须包含：
+
+```text
+你在 /absolute/path/to/repo 中执行 commit-code skill。
+先阅读仓库内 AGENTS.md 和 commit-code/SKILL.md。
+保持脏工作区现状，不要还原用户变更。
+先 review 工作区 diff 并返回报告，等待用户明确确认后再提交。
+除非用户同时要求 push，否则不要 push。
+完成后报告 commit hash、分组和剩余未提交变更。
+```
+
+如果当前环境没有 subagent 工具，才在父 agent 当前 context 中执行本流程，并在汇报中说明已降级为本地执行。
 
 ## 步骤
 

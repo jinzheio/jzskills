@@ -1,12 +1,39 @@
 ---
 name: push-code
-version: "1.1.0"
-description: "当用户要求验证并推送仓库时使用，包括 push this、发布代码、推送到远端。运行适用检查，确保目标变更已提交，然后 push。公开站点如果改动了公开页面，还要执行 post-push IndexNow URL 提交。后端仓库、私有工具、API-only 改动或没有公开 URL 的改动不要运行 IndexNow。"
+version: "1.2.0"
+description: "当用户要求验证并推送仓库时使用，包括 push this、发布代码、推送到远端。必须优先分派 worker subagent 在独立 context window 中执行验证、提交和推送流程。运行适用检查，确保目标变更已提交，然后 push。公开站点如果改动了公开页面，还要执行 post-push IndexNow URL 提交。后端仓库、私有工具、API-only 改动或没有公开 URL 的改动不要运行 IndexNow。"
 ---
 
 # 验证并推送代码
 
 用于在推送前完成检查、提交和远端 push。
+
+## Subagent 启动协议
+
+触发本 skill 后，父 agent 必须优先分派一个 `worker` subagent 执行本 skill，以获得独立的 context window。
+
+父 agent 只负责：
+
+- 创建或复用同一个 worker subagent
+- 向 worker 传递仓库绝对路径、用户原始请求、本 skill 文件路径和当前确认状态
+- 等待 worker 返回确认问题、验证结果、push 结果、索引结果或 blocker
+- 将 worker 的确认问题转述给用户
+- 用户确认后，把确认消息发送给同一个 worker 继续执行
+- 根据 worker 结果向用户做最终汇报
+
+worker subagent 的初始任务必须包含：
+
+```text
+你在 /absolute/path/to/repo 中执行 push-code skill。
+先阅读仓库内 AGENTS.md 和 push-code/SKILL.md。
+保持脏工作区现状，不要还原用户变更。
+先请求确认，等待用户明确确认后再 lint、build、提交或 push。
+推送前确保目标变更已提交、适用检查通过、工作区干净。
+公开站点的公开页面改动按 references/post-push-indexing.md 执行 post-push IndexNow；不适用时说明原因。
+完成后报告验证、push、IndexNow 和 Search Console 结果。
+```
+
+如果当前环境没有 subagent 工具，才在父 agent 当前 context 中执行本流程，并在汇报中说明已降级为本地执行。
 
 ## 步骤
 
