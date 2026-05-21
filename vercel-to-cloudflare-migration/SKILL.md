@@ -17,7 +17,7 @@ description: 将 Web 项目从 Vercel 迁移到 Cloudflare Workers、Pages 或 C
 2. 团队约定的共享凭据文件或安全存储位置。
 3. 用户级 CLI 或浏览器登录态，例如 `vercel whoami`、`gh auth status`、`wrangler whoami`。
 
-检查 env 文件时只探测目标变量是否存在、来源路径、是否被 Git 忽略，以及是否被 Git 追踪。不要读取、复制、输出或总结完整 env 文件内容。不要输出 token 值。只说明是否找到、来源路径或登录态，以及缺少的最小权限。
+检查 env 文件时只探测目标变量是否存在、来源路径、是否被 Git 忽略，以及是否纳入 Git 管理。不要读取、复制、输出或总结完整 env 文件内容。不要输出 token 值。只说明是否找到、来源路径或登录态，以及缺少的最小权限。
 
 ## 启动前必须先做
 
@@ -71,19 +71,23 @@ rg -n 'Vercel|VERCEL|@vercel|next/image|ImageResponse|Edge Config|KV|Blob|Postgr
 
 ## 安全规则
 
-- 不打印 token、`.env` 值、含密钥的 API 响应或 `wrangler secret` 值。
+- 不输出 token、`.env` 值、含密钥的 API 响应或 `wrangler secret` 值。
 - Vercel、GitHub、Cloudflare 需要 token 或登录态时，先检查可用的本地凭据；只探测目标变量是否存在和来源，不读取完整 env 文件；只有查不到或权限不足时才向用户索要。
 - 删除 Vercel 项目、生产 alias、DNS 记录、GitHub 集成或线上资源前，必须先从 CLI/API 输出确认 project、domain、record id、record value 或 integration 名称，并再次等待用户确认。用户说过“直接执行”也不能跳过这次确认。
 - 只删除目标 hostname 上指向 Vercel 的 Web 访问记录。保留 MX、SPF、DKIM、DMARC、Google verification 和无关 TXT。
 - 在 Vercel 自定义域名或项目集成被处理前，不要 push。
-- 本地部署凭据放 `.env.local`。确认 `.env.local` 被忽略且未被 Git 追踪。
-- 如果旧项目追踪了 `env.local`，用 `git rm --cached env.local` 从索引移除，只保留本地未追踪凭据。
+- 本地部署凭据放 `.env.local`。确认 `.env.local` 被忽略且未纳入 Git 管理。
+- 如果旧项目已纳入 Git 管理 `env.local`，用 `git rm --cached env.local` 从索引移除，只保留本地凭据。
+- 使用 OpenNext for Cloudflare 时，绝不能用包含生产私密变量的完整 `.env` 直接构建或部署。OpenNext 会把构建时读取到的 env 写入 `.open-next/cloudflare/next-env.mjs`，并可能进入 Worker bundle。
+- Vercel 生产 env 可以先同步到本地 `.env` 防止丢失，但 Cloudflare Worker 运行时变量必须写入 Worker vars/secrets；构建时只暴露 `NEXT_PUBLIC_*` 和确实必须在构建期使用的最小变量。
+- 如果 SSG 构建必须读取私密变量，优先改代码使用公开只读凭据或受限 build-only 凭据；不要把生产 service role、支付密钥、邮件密钥、OIDC token 等带入 OpenNext 构建。
+- OpenNext 部署后必须扫描 `.open-next` 产物，确认没有嵌入私密变量值或 Vercel 平台变量。扫描脚本只输出命中的变量名，不输出变量值。
 
 ## 流程
 
 ### 1. 识别当前状态
 
-如果 Vercel CLI 未登录或权限不足，先查找 `VERCEL_TOKEN`、`.vercel/` project 信息或可用 CLI 登录态。查找 token 时只探测变量是否存在，不读取完整 env 文件。找到 token 时在单条命令的环境变量中使用，不写入仓库，不打印值。
+如果 Vercel CLI 未登录或权限不足，先查找 `VERCEL_TOKEN`、`.vercel/` project 信息或可用 CLI 登录态。查找 token 时只探测变量是否存在，不读取完整 env 文件。找到 token 时在单条命令的环境变量中使用，不写入仓库，不输出值。
 
 运行：
 
@@ -264,6 +268,148 @@ Hostname '<domain>' already has externally managed DNS records
 
 如果部署由 GitHub 集成触发，先检查 `gh auth status` 或 `GITHUB_TOKEN` 是否可用于查看/调整仓库集成。不要在 Vercel 自定义域名或项目集成处理完成前 push。
 
+#### OpenNext 环境变量安全构建
+
+如果项目使用 `@opennextjs/cloudflare`，先做环境变量分流：
+
+- `NEXT_PUBLIC_*`：可在构建期暴露，Next.js 会内联到客户端。
+- 运行时私密变量：用 `wrangler secret put` 或 `wrangler secret bulk` 写入 Cloudflare Worker。
+- Vercel 平台变量：例如 `VERCEL`、`VERCEL_ENV`、`VERCEL_URL`、`VERCEL_OIDC_TOKEN`、`VERCEL_GIT_*`，不要带入 Cloudflare 构建。
+
+上传 Worker secrets 时，不输出变量值：
+
+```bash
+node - <<'NODE' | node <skill-dir>/scripts/with-cloudflare-env.mjs npx wrangler secret bulk
+const fs = require("fs");
+const keep = new Set([
+  "DATABASE_URL",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "MAILGUN_API_KEY",
+  "MAILGUN_DOMAIN",
+  "RECIPIENT_EMAIL",
+]);
+const out = {};
+for (const line of fs.readFileSync(".env", "utf8").split(/\r?\n/)) {
+  if (!line || line.trimStart().startsWith("#")) continue;
+  const index = line.indexOf("=");
+  if (index < 0) continue;
+  const key = line.slice(0, index).trim();
+  if (!keep.has(key)) continue;
+  let value = line.slice(index + 1).trim();
+  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    value = value.slice(1, -1);
+  }
+  out[key] = value;
+}
+process.stdout.write(JSON.stringify(out));
+NODE
+```
+
+给仓库增加安全构建脚本，避免完整 `.env` 进入 OpenNext 产物：
+
+```js
+// scripts/build-cloudflare.mjs
+import { spawnSync } from "node:child_process";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+
+const envPath = ".env";
+const hasEnv = existsSync(envPath);
+const originalEnv = hasEnv ? readFileSync(envPath, "utf8") : null;
+
+function publicOnlyEnv(source) {
+  return (
+    source
+      .split(/\r?\n/)
+      .filter((line) => {
+        if (!line || line.trimStart().startsWith("#")) return false;
+        const index = line.indexOf("=");
+        if (index < 0) return false;
+        return line.slice(0, index).trim().startsWith("NEXT_PUBLIC_");
+      })
+      .join("\n") + "\n"
+  );
+}
+
+try {
+  if (hasEnv) writeFileSync(envPath, publicOnlyEnv(originalEnv));
+  const result = spawnSync("npx", ["opennextjs-cloudflare", "build"], {
+    stdio: "inherit",
+    shell: false,
+  });
+  if (result.error) throw result.error;
+  process.exitCode = result.status ?? 1;
+} finally {
+  if (hasEnv) writeFileSync(envPath, originalEnv);
+}
+```
+
+把 npm 脚本改成先安全构建，再部署并保留 Cloudflare 已设置的 vars/secrets：
+
+```json
+{
+  "scripts": {
+    "build:cloudflare": "node scripts/build-cloudflare.mjs",
+    "deploy": "npm run build:cloudflare && opennextjs-cloudflare deploy -- --keep-vars"
+  }
+}
+```
+
+如果项目使用 pnpm/yarn/bun，按项目已有包管理器替换命令，不要为了迁移更换包管理器。
+
+构建后扫描产物。不要用会输出匹配行的 `rg <secret> .open-next`；只输出变量名：
+
+```bash
+node - <<'NODE'
+const fs = require("fs");
+const path = require("path");
+const sensitiveValuePattern = /^(?!NEXT_PUBLIC_).*(TOKEN|SECRET|KEY|PASSWORD|PRIVATE|SERVICE_ROLE|DATABASE_URL)/;
+const embeddedNamePattern = /^(?!NEXT_PUBLIC_).*(TOKEN|SECRET|PASSWORD|PRIVATE|SERVICE_ROLE|DATABASE_URL|^VERCEL$|^VERCEL_)/;
+const items = [];
+const sensitiveNames = [];
+for (const line of fs.readFileSync(".env", "utf8").split(/\r?\n/)) {
+  const index = line.indexOf("=");
+  if (index < 0) continue;
+  const key = line.slice(0, index).trim();
+  if (embeddedNamePattern.test(key)) sensitiveNames.push(key);
+  if (!sensitiveValuePattern.test(key)) continue;
+  let value = line.slice(index + 1).trim();
+  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    value = value.slice(1, -1);
+  }
+  if (value.length >= 16) items.push([key, value]);
+}
+const hits = new Set();
+function walk(dir) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const file = path.join(dir, entry.name);
+    if (entry.isDirectory()) walk(file);
+    else if (entry.isFile()) {
+      const stat = fs.statSync(file);
+      if (stat.size > 20 * 1024 * 1024) continue;
+      const text = fs.readFileSync(file, "utf8");
+      for (const [key, value] of items) {
+        if (text.includes(value)) hits.add(key);
+      }
+    }
+  }
+}
+walk(".open-next");
+const nextEnvPath = ".open-next/cloudflare/next-env.mjs";
+if (fs.existsSync(nextEnvPath)) {
+  const nextEnv = fs.readFileSync(nextEnvPath, "utf8");
+  for (const key of sensitiveNames) {
+    if (nextEnv.includes(key)) hits.add(key);
+  }
+}
+console.log("embedded_sensitive_keys=" + (hits.size ? [...hits].sort().join(",") : "none"));
+process.exitCode = hits.size ? 1 : 0;
+NODE
+```
+
+如果扫描命中任何私密变量，停止部署，删除 `.open-next`，修正构建环境后重新构建。已部署过的情况下，先把正确版本重新部署，再考虑轮换被嵌入的密钥。
+
 生产前运行项目检查：
 
 ```bash
@@ -281,6 +427,10 @@ node <skill-dir>/scripts/with-cloudflare-env.mjs pnpm exec wrangler d1 migration
 部署：
 
 ```bash
+# OpenNext for Cloudflare
+node <skill-dir>/scripts/with-cloudflare-env.mjs pnpm exec opennextjs-cloudflare deploy -- --keep-vars
+
+# 普通 Workers 项目
 node <skill-dir>/scripts/with-cloudflare-env.mjs pnpm exec wrangler deploy
 ```
 
@@ -349,6 +499,7 @@ vercel alias ls --scope <scope> --limit 100 | rg 'example\.com|www\.example\.com
 - Vectorize 返回 `Authentication error [code: 10000]`：给 Cloudflare token 增加 Vectorize 权限。
 - `/workers/routes` 或 `/domains/records` 返回认证错误：给目标 zone 增加 Workers Routes edit 和 Zone read。
 - `externally managed DNS records`：删除目标 hostname 上旧 A/AAAA/CNAME。
+- OpenNext 部署后 Worker 还能读到 `.env` 私密变量：说明构建时完整 `.env` 被嵌入了 `.open-next/cloudflare/next-env.mjs` 或 Worker bundle。改用只含 `NEXT_PUBLIC_*` 的安全构建脚本，runtime secrets 用 Cloudflare Worker secrets，并用 `--keep-vars` 部署。
 - Pages custom domain 报 `CNAME record not set`：临时改成 DNS only，active 后切回 proxied 并验证 HTTPS。
 - 本地 `dig` 或普通 `curl` 显示域名不可解析：不要只按本地 DNS 判断；用权威解析或 `curl --resolve` 直接验证域名 HTTPS 可达。
 - `www` 刚部署后 TLS 失败：等待并重试，custom domain 证书和 DNS 可能有短暂延迟。
@@ -362,4 +513,5 @@ vercel alias ls --scope <scope> --limit 100 | rg 'example\.com|www\.example\.com
 - Worker deployment version id。
 - 生产 URL 和 HTTP 状态。
 - 已运行的验证命令。
+- OpenNext 产物扫描结果，例如 `embedded_sensitive_keys=none`。
 - 剩余风险，例如缺少模型/支付 secret、项目代码仍依赖 Vercel 平台能力、尚未 push。
