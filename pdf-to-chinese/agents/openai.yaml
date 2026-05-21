@@ -1,0 +1,4 @@
+interface:
+  display_name: "PDF 中文化"
+  short_description: "保留 PDF 版式，将外语替换为中文"
+  default_prompt: "使用 $pdf-to-chinese 将这份外语 PDF 转成保留原样式的中文 PDF。"
