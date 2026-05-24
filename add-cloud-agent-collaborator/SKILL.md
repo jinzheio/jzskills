@@ -10,7 +10,7 @@ description: "当用户在本地/admin 侧要求为 OpenClaw、Hermes 或 cloud 
 
 ## 本机账号配置
 
-- 默认读取 `${ADD_CLOUD_AGENT_COLLABORATOR_CONFIG:-$HOME/.config/skills/add-cloud-agent-collaborator.env}`。
+- 优先从 `ADD_CLOUD_AGENT_COLLABORATOR_CONFIG` 指向的本机未跟踪配置读取；未设置时向用户确认本机未跟踪配置文件或临时环境变量。
 - 必填键：`OWNER_ACCOUNT`、`AGENT_GITHUB`、`AGENT_EMAIL`。
 - 用户没有提供 agent 账号时，使用配置里的 `AGENT_GITHUB` 和 `AGENT_EMAIL`，不要再询问。
 - 不要把本机配置文件提交到仓库，也不要把具体账号值写进这个 skill。
@@ -59,8 +59,15 @@ cloud agent -> agent fork -> preview deployment -> human review -> pull request 
 流程开始时读取本机未跟踪配置：
 
 ```bash
-CONFIG_FILE="${ADD_CLOUD_AGENT_COLLABORATOR_CONFIG:-$HOME/.config/skills/add-cloud-agent-collaborator.env}"
-test -f "$CONFIG_FILE" && set -a && . "$CONFIG_FILE" && set +a
+if [ -n "${ADD_CLOUD_AGENT_COLLABORATOR_CONFIG:-}" ]; then
+  test -f "$ADD_CLOUD_AGENT_COLLABORATOR_CONFIG" || {
+    echo "ADD_CLOUD_AGENT_COLLABORATOR_CONFIG does not point to a readable local config file" >&2
+    exit 1
+  }
+  set -a
+  . "$ADD_CLOUD_AGENT_COLLABORATOR_CONFIG"
+  set +a
+fi
 
 : "${OWNER_ACCOUNT:?Set OWNER_ACCOUNT in local config or the shell environment}"
 : "${AGENT_GITHUB:?Set AGENT_GITHUB in local config or the shell environment}"
@@ -166,7 +173,7 @@ Upstream: OWNER/REPO
 Fork: <agent github>/REPO
 只 push 到你的 fork。不要 push upstream。
 创建或连接你自己的 Vercel preview project 和 Neon preview DB。
-在 cloud agent 服务器上使用 `/opt/clawsimple/Projects/<agent>/<repo>`。
+在 cloud agent 的项目工作目录中 clone repo。
 只有我确认 preview 后，才创建 PR。
 ```
 
