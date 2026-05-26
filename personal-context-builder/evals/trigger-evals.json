@@ -19,6 +19,14 @@
       "should_trigger": true
     },
     {
+      "prompt": "回顾这次对话，看看 aboutme 下的文件有没有需要更新的地方。",
+      "should_trigger": true
+    },
+    {
+      "prompt": "Review my personal context and update about.md, voice.md, or anti-style.md if this session changed anything.",
+      "should_trigger": true
+    },
+    {
       "prompt": "帮我把这篇公众号文章润色一下，去掉 AI 味",
       "should_trigger": false
     },

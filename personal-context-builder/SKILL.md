@@ -1,7 +1,7 @@
 ---
 name: personal-context-builder
 version: "1.0.0"
-description: "当用户想通过访谈、苏格拉底提问或交互式方式创建 about.md、voice.md、anti-style.md，并让 Codex、ChatGPT、Claude、Claude Code 使用这些个人上下文文件时使用。触发语包括 create about me、voice profile、anti AI writing style、个人上下文、写作风格文件、全局 AI profile、-g 自动开启。不是用于写单篇文章或普通润色。"
+description: "当用户想通过访谈、苏格拉底提问或交互式方式创建或更新 about.md、voice.md、anti-style.md，并让 Codex、ChatGPT、Claude、Claude Code 使用这些个人上下文文件时使用。触发语包括 create about me、update aboutme、review personal context、voice profile、anti AI writing style、个人上下文、写作风格文件、全局 AI profile、-g 自动开启。用户在对话中途要求更新 aboutme 文件时，也用本 skill 回顾当前 session 并判断各文件是否需要更新。不是用于写单篇文章或普通润色。"
 ---
 
 # personal-context-builder
@@ -36,7 +36,29 @@ description: "当用户想通过访谈、苏格拉底提问或交互式方式创
 
 否则先问要接入哪些入口。不要在未确认时修改全局配置文件。
 
-### 2. 苏格拉底式访谈
+### 2. 判断模式
+
+如果目标文件不存在，进入“创建模式”，按后续苏格拉底式访谈创建三份文件。
+
+如果用户在对话中途说“更新 aboutme”“更新个人上下文”“review personal context”“刚才这段也写进 profile”等，进入“Review and Update 模式”：
+
+1. 先读取 `~/Projects/aboutme/about.md`、`voice.md`、`anti-style.md`。
+2. 回顾当前 session 中用户已经明确表达的信息，只使用本 session 可见内容，不猜测历史对话。
+3. 按文件分类判断：
+   - `about.md`：身份、目标、约束、已做决定、业务状态是否变化。
+   - `voice.md`：读者、表达方式、文章开头、判断方式、常用表达是否变化。
+   - `anti-style.md`：禁用词、禁用结构、禁用语气、UI/产品文案规则是否变化。
+4. 输出审计结果：
+   - `需要更新`：列出建议新增、修改或删除的条目。
+   - `无需更新`：说明当前文件已经覆盖。
+   - `信息不足`：问 1 个编号问题确认。
+5. 不要把临时情绪、一次性任务、未确认事实写进长期文件。
+6. 如果用户明确要求“直接更新”，可在审计后直接编辑；否则先给出建议变更，等待用户确认。
+7. 更新后汇报改了哪些文件、每个文件改了什么。
+
+Review and Update 模式不要求每个文件再问 5-10 个问题；只有信息不足时才进入单题追问。
+
+### 3. 苏格拉底式访谈
 
 访谈必须采用单题递进方式：
 
@@ -80,7 +102,7 @@ description: "当用户想通过访谈、苏格拉底提问或交互式方式创
 
 每个文件的访谈结束后，按问题编号汇总答案，再生成对应草稿。不要在 5 题之前生成文件，除非用户明确要求提前结束。
 
-### 3. 生成文件
+### 4. 生成文件
 
 文件用中文写，除非用户要求英文。保留必要英文技术标识。
 
@@ -92,7 +114,7 @@ description: "当用户想通过访谈、苏格拉底提问或交互式方式创
 - 不写真实隐私信息，除非用户明确要求本地私用。
 - 对外可分享版本必须把账号、客户、路径、联系人和密钥替换成占位符。
 
-### 4. 用户确认
+### 5. 用户确认
 
 生成三份文件后，先让用户检查：
 
@@ -102,7 +124,7 @@ description: "当用户想通过访谈、苏格拉底提问或交互式方式创
 
 用户确认后再执行安装脚本。
 
-### 5. 安装到各入口
+### 6. 安装到各入口
 
 使用 `scripts/install-profile.mjs`。
 
