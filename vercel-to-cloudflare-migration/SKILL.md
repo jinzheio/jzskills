@@ -21,27 +21,44 @@ description: 将 Web 项目从 Vercel 迁移到 Cloudflare Workers、Pages 或 C
 
 ## 启动前必须先做
 
-在执行任何会改变线上状态的操作前，先完成评估并向用户列出步骤，请用户确认后再继续。
+在执行任何会改变线上状态的操作前，先完成项目识别、迁移可行性检查和技术栈推荐。不要一上来创建 Cloudflare 资源、改 DNS、移除 Vercel alias、删除 Vercel project 或 push。
 
 评估内容：
 
+- 当前项目类型和现有框架。
 - 当前项目是否能直接部署到 Cloudflare。
+- 最少改动迁移是否合理，是否应该重新选择适合 Cloudflare 的技术栈。
 - 是否使用了 Vercel 平台资源。
 - 是否存在 Vercel 配置文件或项目设置会影响迁移。
 - 域名当前由谁托管、Vercel 绑定在哪里、GitHub 自动部署是否仍会触发。
+
+先基于当前项目给出初步技术栈推荐，再询问用户是否有会改变最优方案的约束。不要把问题问成阻塞式需求收集；如果已经能从代码判断项目类型，就先说明当前判断和推荐，再列出哪些约束会改变结论。至少确认：
+
+- 是否必须保留当前框架。
+- 是否必须保留 SSR、Middleware、API routes、Route Handlers、Server Actions、ISR、Image Optimization 等 Next.js 特性。
+- 是否必须保留 i18n、多语言路由或 locale 检测。
+- 是否接受只保留英文、移除多语言、去掉 SSR/中间件，或保留设计但换框架。
+- 是否更重视最少改动上线，还是更重视后续维护成本和 Cloudflare 原生适配。
+
+给技术栈建议后，再给迁移步骤。技术栈建议必须同时包含：
+
+- 推荐方案：说明为什么最适合当前项目和用户约束。
+- 备选方案：说明适用条件、改动量和风险。
 
 必须向用户展示：
 
 ```text
 我会按这些步骤执行：
-1. 检查项目能否迁到 Cloudflare。
-2. 检查 Vercel 平台资源和配置文件。
-3. 移除 Vercel 生产域名绑定。
-4. 创建或复用 Cloudflare 资源。
-5. 清理指向 Vercel 的 DNS 记录。
-6. 构建、迁移数据库并部署到 Cloudflare。
-7. 验证线上域名。
-8. 按需删除 Vercel 项目或断开 GitHub 集成。
+1. 识别项目类型、现有框架和 Vercel 依赖。
+2. 给出推荐方案和备选方案。
+3. 询问是否有会影响技术栈选择的约束。
+4. 检查 Vercel 平台资源和配置文件。
+5. 移除 Vercel 生产域名绑定。
+6. 创建或复用 Cloudflare 资源。
+7. 清理指向 Vercel 的 DNS 记录。
+8. 构建、迁移数据库并部署到 Cloudflare。
+9. 验证线上域名。
+10. 按需删除 Vercel 项目或断开 GitHub 集成。
 
 请确认是否继续。
 ```
@@ -52,22 +69,30 @@ description: 将 Web 项目从 Vercel 迁移到 Cloudflare Workers、Pages 或 C
 
 ## 迁移可行性检查
 
+先按当前项目给出技术栈建议，再进入线上迁移动作。迁移评估不是只判断“能不能把当前框架跑起来”，还要判断“是否值得保留当前框架”。
+
 先读这些文件，存在就重点检查：
 
 ```bash
-rg --files | rg '(^|/)(vercel\\.json|next\\.config\\.(js|mjs|ts)|package\\.json|wrangler\\.(jsonc|toml)|\\.env\\.example|env\\.example)$'
-rg -n 'Vercel|VERCEL|@vercel|next/image|ImageResponse|Edge Config|KV|Blob|Postgres|Analytics|Speed Insights|Cron|rewrites|redirects|headers|functions|regions|runtime|vercel' .
+rg --files | rg '(^|/)(astro\\.config\\.(js|mjs|ts)|vercel\\.json|next\\.config\\.(js|mjs|ts)|package\\.json|wrangler\\.(jsonc|toml)|\\.env\\.example|env\\.example)$'
+rg -n 'Vercel|VERCEL|@vercel|next/image|ImageResponse|Edge Config|KV|Blob|Postgres|Analytics|Speed Insights|Cron|rewrites|redirects|headers|functions|regions|runtime|vercel|i18n|middleware|generateStaticParams|generateMetadata|server actions|use server|getStaticProps|getServerSideProps' .
 ```
 
 重点判断：
 
-- Next.js 是否依赖 Node-only API、ISR、Image Optimization、Middleware、Route Handlers、Server Actions。
+- 项目类型：纯内容站、个人项目展示、文档站、营销页、博客、作品集、SaaS 应用、后台、带登录态应用、API 服务或混合应用。
+- 现有框架：Next.js、Astro、Vite/React、SvelteKit、Nuxt、静态 HTML，或其他框架。
+- 渲染方式：纯静态、SSG、SSR、ISR、边缘中间件、客户端应用。
+- Next.js 是否依赖 Node-only API、ISR、Image Optimization、Middleware、Route Handlers、Server Actions、API routes、动态 metadata、动态 sitemap/robots。
+- 是否使用 i18n、多语言路由、locale 检测、按语言生成 sitemap，或 `middleware` 做语言跳转。
 - 是否使用 `@vercel/analytics`、`@vercel/speed-insights`、`@vercel/blob`、`@vercel/postgres`、Vercel KV、Edge Config。
 - 是否依赖 Vercel Cron、Vercel rewrites/redirects/headers、环境变量、Build/Install/Output 设置。
 - 是否使用 Vercel 域名、Vercel 自动 GitHub 部署、Preview URL、Protection、Skew Protection。
 - 是否能用 Cloudflare Workers/Pages 直接承载，还是要改代码、换存储、换图片方案、换定时任务。
 
 如果不能直接迁移，先列出改造项和风险，不要直接发布。
+
+技术栈推荐细则见 `references/technical-stack.md`。需要在框架、SSR、i18n、Pages/Workers/OpenNext 之间做取舍时再读取；普通域名交接或单一路径部署不必加载。
 
 ## 安全规则
 
@@ -117,6 +142,8 @@ vercel alias ls --scope <scope> --limit 100
 先查找 Cloudflare 凭据。优先使用当前项目 env；没有时检查团队约定的共享凭据文件或安全存储位置；再检查 `wrangler whoami` 或用户级配置。
 
 查找 env 时只输出变量名和来源文件，不输出值，不读取完整文件到对话上下文。
+
+Cloudflare token 权限细则见 `references/permissions.md`。遇到权限报错或需要创建 D1、R2、Queues、Vectorize、Workers routes/custom domains 时再读取。
 
 可识别的变量：
 
@@ -268,147 +295,11 @@ Hostname '<domain>' already has externally managed DNS records
 
 如果部署由 GitHub 集成触发，先检查 `gh auth status` 或 `GITHUB_TOKEN` 是否可用于查看/调整仓库集成。不要在 Vercel 自定义域名或项目集成处理完成前 push。
 
-#### OpenNext 环境变量安全构建
+#### 运行时变量专题
 
-如果项目使用 `@opennextjs/cloudflare`，先做环境变量分流：
+如果项目使用 OpenNext for Cloudflare，读取 `references/opennext-env.md`。核心规则：构建期只给 `NEXT_PUBLIC_*` 和必要 build-only 变量；运行时私密变量写入 Worker vars/secrets；部署使用 `--keep-vars` 或等价方式；部署前扫描 `.open-next` 产物。
 
-- `NEXT_PUBLIC_*`：可在构建期暴露，Next.js 会内联到客户端。
-- 运行时私密变量：用 `wrangler secret put` 或 `wrangler secret bulk` 写入 Cloudflare Worker。
-- Vercel 平台变量：例如 `VERCEL`、`VERCEL_ENV`、`VERCEL_URL`、`VERCEL_OIDC_TOKEN`、`VERCEL_GIT_*`，不要带入 Cloudflare 构建。
-
-上传 Worker secrets 时，不输出变量值：
-
-```bash
-node - <<'NODE' | node <skill-dir>/scripts/with-cloudflare-env.mjs npx wrangler secret bulk
-const fs = require("fs");
-const keep = new Set([
-  "DATABASE_URL",
-  "SUPABASE_SERVICE_ROLE_KEY",
-  "NEXT_PUBLIC_SUPABASE_URL",
-  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-  "MAILGUN_API_KEY",
-  "MAILGUN_DOMAIN",
-  "RECIPIENT_EMAIL",
-]);
-const out = {};
-for (const line of fs.readFileSync(".env", "utf8").split(/\r?\n/)) {
-  if (!line || line.trimStart().startsWith("#")) continue;
-  const index = line.indexOf("=");
-  if (index < 0) continue;
-  const key = line.slice(0, index).trim();
-  if (!keep.has(key)) continue;
-  let value = line.slice(index + 1).trim();
-  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-    value = value.slice(1, -1);
-  }
-  out[key] = value;
-}
-process.stdout.write(JSON.stringify(out));
-NODE
-```
-
-给仓库增加安全构建脚本，避免完整 `.env` 进入 OpenNext 产物：
-
-```js
-// scripts/build-cloudflare.mjs
-import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-
-const envPath = ".env";
-const hasEnv = existsSync(envPath);
-const originalEnv = hasEnv ? readFileSync(envPath, "utf8") : null;
-
-function publicOnlyEnv(source) {
-  return (
-    source
-      .split(/\r?\n/)
-      .filter((line) => {
-        if (!line || line.trimStart().startsWith("#")) return false;
-        const index = line.indexOf("=");
-        if (index < 0) return false;
-        return line.slice(0, index).trim().startsWith("NEXT_PUBLIC_");
-      })
-      .join("\n") + "\n"
-  );
-}
-
-try {
-  if (hasEnv) writeFileSync(envPath, publicOnlyEnv(originalEnv));
-  const result = spawnSync("npx", ["opennextjs-cloudflare", "build"], {
-    stdio: "inherit",
-    shell: false,
-  });
-  if (result.error) throw result.error;
-  process.exitCode = result.status ?? 1;
-} finally {
-  if (hasEnv) writeFileSync(envPath, originalEnv);
-}
-```
-
-把 npm 脚本改成先安全构建，再部署并保留 Cloudflare 已设置的 vars/secrets：
-
-```json
-{
-  "scripts": {
-    "build:cloudflare": "node scripts/build-cloudflare.mjs",
-    "deploy": "npm run build:cloudflare && opennextjs-cloudflare deploy -- --keep-vars"
-  }
-}
-```
-
-如果项目使用 pnpm/yarn/bun，按项目已有包管理器替换命令，不要为了迁移更换包管理器。
-
-构建后扫描产物。不要用会输出匹配行的 `rg <secret> .open-next`；只输出变量名：
-
-```bash
-node - <<'NODE'
-const fs = require("fs");
-const path = require("path");
-const sensitiveValuePattern = /^(?!NEXT_PUBLIC_).*(TOKEN|SECRET|KEY|PASSWORD|PRIVATE|SERVICE_ROLE|DATABASE_URL)/;
-const embeddedNamePattern = /^(?!NEXT_PUBLIC_).*(TOKEN|SECRET|PASSWORD|PRIVATE|SERVICE_ROLE|DATABASE_URL|^VERCEL$|^VERCEL_)/;
-const items = [];
-const sensitiveNames = [];
-for (const line of fs.readFileSync(".env", "utf8").split(/\r?\n/)) {
-  const index = line.indexOf("=");
-  if (index < 0) continue;
-  const key = line.slice(0, index).trim();
-  if (embeddedNamePattern.test(key)) sensitiveNames.push(key);
-  if (!sensitiveValuePattern.test(key)) continue;
-  let value = line.slice(index + 1).trim();
-  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-    value = value.slice(1, -1);
-  }
-  if (value.length >= 16) items.push([key, value]);
-}
-const hits = new Set();
-function walk(dir) {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const file = path.join(dir, entry.name);
-    if (entry.isDirectory()) walk(file);
-    else if (entry.isFile()) {
-      const stat = fs.statSync(file);
-      if (stat.size > 20 * 1024 * 1024) continue;
-      const text = fs.readFileSync(file, "utf8");
-      for (const [key, value] of items) {
-        if (text.includes(value)) hits.add(key);
-      }
-    }
-  }
-}
-walk(".open-next");
-const nextEnvPath = ".open-next/cloudflare/next-env.mjs";
-if (fs.existsSync(nextEnvPath)) {
-  const nextEnv = fs.readFileSync(nextEnvPath, "utf8");
-  for (const key of sensitiveNames) {
-    if (nextEnv.includes(key)) hits.add(key);
-  }
-}
-console.log("embedded_sensitive_keys=" + (hits.size ? [...hits].sort().join(",") : "none"));
-process.exitCode = hits.size ? 1 : 0;
-NODE
-```
-
-如果扫描命中任何私密变量，停止部署，删除 `.open-next`，修正构建环境后重新构建。已部署过的情况下，先把正确版本重新部署，再考虑轮换被嵌入的密钥。
+如果项目使用 `wrangler pages deploy <dist>` 且包含 Pages Functions，读取 `references/pages-direct-upload-functions.md`。核心规则：先验证真实 API route 的 `context.env`；只有 Direct Upload Functions 读不到已配置变量时，才使用临时 `[vars]` 桥接。
 
 生产前运行项目检查：
 
