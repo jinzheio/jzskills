@@ -45,7 +45,7 @@ effectiveCost
 2. 用脚本按 cycle 解析：
 
 ```bash
-node ../jzskills/vercel-cost-analysis/scripts/parse-vercel-cost.mjs \
+node ./vercel-cost-analysis/scripts/parse-vercel-cost.mjs \
   --from 2026-02-03 \
   --to 2026-03-02 \
   --cycle-day 3 \

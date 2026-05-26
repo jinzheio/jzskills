@@ -35,7 +35,7 @@ description: "当用户想把本地网站或 Web app 完整发布到 Cloudflare 
 
 - 必填：本地 repo path，或当前就在目标 repo 中
 - 必填：Cloudflare account id 或可用 `wrangler whoami`
-- 可选：GitHub owner，例如 `jinzheio`；只有需要创建或连接源码 repo 时必填
+- 可选：GitHub owner，例如 `<github-owner>`；只有需要创建或连接源码 repo 时必填
 - 可选：repo / Worker name，默认当前目录名
 - 可选：monorepo app root，例如 `apps/web`
 - 可选：production env vars 来源：`.env.production`、`.env` 或其它路径

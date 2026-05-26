@@ -31,7 +31,7 @@ wx sessions --json -n 5
 ## 运行注意事项
 
 - 避免并发运行多个 `wx` 命令，尤其是刚执行过 `wx init --force`、刚清理 cache 或 daemon 未启动时。`wx-cli` 会在后台解密并缓存数据库，并发触发 daemon/cache 重建时可能出现 `database disk image is malformed`。遇到该错误，先运行 `wx daemon stop`，再单线程重跑命令。
-- 如果微信界面能看到旧消息，但 `wx history` / `wx search` 查不到，通常是旧消息所在的 `message_1.db`、`message_2.db`、`message_3.db` 等分片密钥没有被提取。让用户在微信里翻到旧记录并保持登录，再执行 `sudo wx init --force`，确认 `~/.wx-cli/all_keys.json` 里包含对应 `message/message_*.db` 密钥，然后停止 daemon 并重跑查询。
+- 如果微信界面能看到旧消息，但 `wx history` / `wx search` 查不到，通常是旧消息所在的数据库分片密钥没有被提取。让用户在微信里翻到旧记录并保持登录，再执行 `sudo wx init --force`，确认 `wx-cli` 已提取对应分片密钥。不要输出密钥缓存文件路径或内容。然后停止 daemon 并重跑查询。
 - `wx stats` 的 `top_senders` 可能把同一个显示名拆成多行，例如同名、改名、不同内部 sender id 显示为同一昵称。回答活跃 Top 时保留原始结果，并提示“同显示名可能未合并”；如用户需要合并口径，再基于显示名做二次汇总。
 
 ## 常用脚本
@@ -39,32 +39,32 @@ wx sessions --json -n 5
 脚本路径：
 
 ```bash
-node /Users/hwang/Projects/jzskills/wechat-social-analytics/scripts/wx-social-analytics.mjs <mode> [options]
+node ./wechat-social-analytics/scripts/wx-social-analytics.mjs <mode> [options]
 ```
 
 模式：
 
 ```bash
 # 1. 一个群里最活跃的 top 10
-node /Users/hwang/Projects/jzskills/wechat-social-analytics/scripts/wx-social-analytics.mjs group-top --chat "AI群"
+node ./wechat-social-analytics/scripts/wx-social-analytics.mjs group-top --chat "<群名>"
 
 # 2. 一个群里互动最多拓扑图
-node /Users/hwang/Projects/jzskills/wechat-social-analytics/scripts/wx-social-analytics.mjs group-topology --chat "AI群" --since 2026-05-01 --limit 5000 --mermaid
+node ./wechat-social-analytics/scripts/wx-social-analytics.mjs group-topology --chat "<群名>" --since YYYY-MM-DD --limit 5000 --mermaid
 
 # 3. 按改名记录找个人群
-node /Users/hwang/Projects/jzskills/wechat-social-analytics/scripts/wx-social-analytics.mjs personal-group-find --name "杨懿辅导自记录"
+node ./wechat-social-analytics/scripts/wx-social-analytics.mjs personal-group-find --name "<群名>"
 
 # 4. 过去 10 天谁和我交流最多
-node /Users/hwang/Projects/jzskills/wechat-social-analytics/scripts/wx-social-analytics.mjs my-top --days 10 --sessions 300
+node ./wechat-social-analytics/scripts/wx-social-analytics.mjs my-top --days 10 --sessions 300
 
 # 5. 和我共享最多群的好友 top 10
-node /Users/hwang/Projects/jzskills/wechat-social-analytics/scripts/wx-social-analytics.mjs shared-groups --sessions 1000
+node ./wechat-social-analytics/scripts/wx-social-analytics.mjs shared-groups --sessions 1000
 
 # 6. 指定群每日消息总结，默认总结昨天
-node /Users/hwang/Projects/jzskills/wechat-social-analytics/scripts/wx-social-analytics.mjs group-summary --chat "AI群"
+node ./wechat-social-analytics/scripts/wx-social-analytics.mjs group-summary --chat "<群名>"
 
 # 指定日期
-node /Users/hwang/Projects/jzskills/wechat-social-analytics/scripts/wx-social-analytics.mjs group-summary --chat "AI群" --date 2026-05-13
+node ./wechat-social-analytics/scripts/wx-social-analytics.mjs group-summary --chat "<群名>" --date YYYY-MM-DD
 ```
 
 ## 口径
@@ -101,7 +101,7 @@ wx members "<群名>" --json
 当用户说“找个人群 <群名>”“查个人群 <群名>”或指定“个人群”口径时，先运行：
 
 ```bash
-node /Users/hwang/Projects/jzskills/wechat-social-analytics/scripts/wx-social-analytics.mjs personal-group-find --name "<群名>"
+node ./wechat-social-analytics/scripts/wx-social-analytics.mjs personal-group-find --name "<群名>"
 ```
 
 查找口径：
@@ -152,7 +152,7 @@ wx members "<群名>" --json
 使用：
 
 ```bash
-node /Users/hwang/Projects/jzskills/wechat-social-analytics/scripts/wx-social-analytics.mjs group-summary --chat "<群名>" --date YYYY-MM-DD
+node ./wechat-social-analytics/scripts/wx-social-analytics.mjs group-summary --chat "<群名>" --date YYYY-MM-DD
 ```
 
 默认 `--date` 为昨天。脚本输出：
@@ -182,7 +182,7 @@ node /Users/hwang/Projects/jzskills/wechat-social-analytics/scripts/wx-social-an
 如果用户说“每天发我指定群总结”“每天早上总结这个群”，需要先确认群名、运行时间和总结日期口径。确认后创建定时任务，任务 prompt 写成：
 
 ```text
-使用 /Users/hwang/Projects/jzskills/wechat-social-analytics/scripts/wx-social-analytics.mjs group-summary 总结指定微信群昨天的消息，输出日期、消息量、主要话题、决定、待办、链接/文件、未解决问题、活跃成员和限制。
+使用 ./wechat-social-analytics/scripts/wx-social-analytics.mjs group-summary 总结指定微信群昨天的消息，输出日期、消息量、主要话题、决定、待办、链接/文件、未解决问题、活跃成员和限制。
 ```
 
 ## 输出
