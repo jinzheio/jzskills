@@ -20,6 +20,7 @@
 | `get-fast-download` | 上传 `software/` 下的文件，生成临时快速下载链接。 |
 | `vercel-cost-analysis` | 解释 Vercel usage、billed cost、Pro 固定费和信用卡扣款差异。 |
 | `wechat-social-analytics` | 基于本地 `wx-cli` 数据分析微信群活跃成员、互动拓扑、私聊交流量、共同群和每日群总结。 |
+| `personal-context-builder` | 通过访谈生成个人上下文和写作风格文件，供 Codex、ChatGPT、Claude、Claude Code 使用。 |
 
 新网站的推荐顺序：
 
@@ -65,6 +66,7 @@ cp -R push-code ~/.codex/skills/
 cp -R get-fast-download ~/.codex/skills/
 cp -R vercel-cost-analysis ~/.codex/skills/
 cp -R wechat-social-analytics ~/.codex/skills/
+cp -R personal-context-builder ~/.codex/skills/
 ```
 
 如果 runner 能直接读取这个仓库，不需要复制。
@@ -113,6 +115,10 @@ cp -R wechat-social-analytics ~/.codex/skills/
 
 ```text
 使用 $wechat-social-analytics 总结这个微信群，并找出最活跃成员。
+```
+
+```text
+使用 $personal-context-builder 通过访谈在 ~/Projects/aboutme 生成 about.md、voice.md、anti-style.md，并用 -g 接入四个入口。
 ```
 
 ## 配置

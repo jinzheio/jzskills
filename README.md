@@ -20,6 +20,7 @@ This repository is a public skill pack. Each skill folder lives at the repositor
 | `get-fast-download` | Upload files from `software/` and return temporary fast download links. |
 | `vercel-cost-analysis` | Explain Vercel usage, billed cost, Pro fees, and receipt/card charge differences. |
 | `wechat-social-analytics` | Analyze local WeChat data with `wx-cli`: group activity, interaction topology, private-chat volume, shared groups, and daily group summaries. |
+| `personal-context-builder` | Interview the user to create persistent profile and writing-style files for Codex, ChatGPT, Claude, and Claude Code. |
 
 Recommended sequence for a new site:
 
@@ -65,6 +66,7 @@ cp -R push-code ~/.codex/skills/
 cp -R get-fast-download ~/.codex/skills/
 cp -R vercel-cost-analysis ~/.codex/skills/
 cp -R wechat-social-analytics ~/.codex/skills/
+cp -R personal-context-builder ~/.codex/skills/
 ```
 
 If your runner can read this repository directly, no copy step is needed.
@@ -113,6 +115,10 @@ Use $vercel-cost-analysis to reconcile this Vercel receipt with usage data.
 
 ```text
 Use $wechat-social-analytics to summarize this WeChat group and find the most active members.
+```
+
+```text
+Use $personal-context-builder to interview me, create about.md, voice.md, anti-style.md in ~/Projects/aboutme, and enable all targets with -g.
 ```
 
 ## Configuration
