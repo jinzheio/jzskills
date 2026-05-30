@@ -1,7 +1,7 @@
 ---
 name: push-code
-version: "1.2.0"
-description: "当用户要求验证并推送仓库时使用，包括 push this、发布代码、推送到远端。必须优先分派 worker subagent 在独立 context window 中执行验证、提交和推送流程。运行适用检查，确保目标变更已提交，然后 push。公开站点如果改动了公开页面，还要执行 post-push IndexNow URL 提交。后端仓库、私有工具、API-only 改动或没有公开 URL 的改动不要运行 IndexNow。"
+version: "1.4.1"
+description: "当用户要求验证并推送仓库时使用，包括 push this、发布代码、推送到远端。必须优先分派 worker subagent 在独立 context window 中执行验证、提交和推送流程。运行适用检查，确保目标变更已提交，然后 push。Cloudflare 公开站点优先使用 GitHub Actions 自动部署；只有缺 workflow 时才读取自动部署 reference 并补齐。用 [skip deploy] 跳过部署。部署完成后再执行 IndexNow。后端仓库、私有工具、API-only 改动或没有公开 URL 的改动不要运行 IndexNow。"
 ---
 
 # 验证并推送代码
@@ -29,8 +29,10 @@ worker subagent 的初始任务必须包含：
 保持脏工作区现状，不要还原用户变更。
 先请求确认，等待用户明确确认后再 lint、build、提交或 push。
 推送前确保目标变更已提交、适用检查通过、工作区干净。
-公开站点的公开页面改动按 references/post-push-indexing.md 执行 post-push IndexNow；不适用时说明原因。
-完成后报告验证、push、IndexNow 和 Search Console 结果。
+如果是 Cloudflare 公开站点，推送前先确认 GitHub Actions 自动部署 workflow 存在；没有则读取 references/cloudflare-auto-deploy.md 并补齐。缺少 Cloudflare GitHub secrets 时，先使用本机 `infra-credential-lookup` skill 查找并验证可用凭据，再决定是否需要询问用户。不要在 push 后询问本地 wrangler 发布。
+本次 push 的 commit range 中任一 commit message 包含 `[skip deploy]` 时跳过自动部署，也不要执行 IndexNow 提交。
+公开站点的公开页面改动按 references/post-push-indexing.md 执行 post-deploy IndexNow；Cloudflare 站点必须在 GitHub Actions 部署完成并验证后再提交 IndexNow。不适用时说明原因。
+完成后报告验证、push、Cloudflare 发布、IndexNow 和 Search Console 结果。
 ```
 
 如果当前环境没有 subagent 工具，才在父 agent 当前 context 中执行本流程，并在汇报中说明已降级为本地执行。
@@ -65,7 +67,40 @@ worker subagent 的初始任务必须包含：
 
 如果是后端、API-only、私有工具、内部项目，或改动无法映射到公开 URL，跳过 IndexNow 和 Search Console，并说明原因。
 
-### 4. 自动验证
+### 4. Cloudflare 自动部署检查
+
+先做轻量判断。只有项目是 Cloudflare 公开站点时，才继续本节。
+
+同时满足以下两类条件，才视为 Cloudflare 公开站点：
+
+公开站点信号，满足任一项：
+
+- 变更影响公开页面、公开路由、sitemap、robots 或 canonical host 配置
+- public URL、sitemap、robots、canonical host 等配置可以解析到生产站点
+- 项目文档明确说明这是公开 Web 站点
+
+Cloudflare 托管信号，满足任一项：
+
+- 仓库包含 `wrangler.toml`、`wrangler.json` 或 `wrangler.jsonc`
+- `package.json` 中存在 `wrangler deploy`、`wrangler pages deploy`、`pages:deploy`、`deploy:cloudflare` 等发布命令
+- 项目文档明确说明部署到 Cloudflare Workers 或 Cloudflare Pages
+- public URL、sitemap、robots、canonical host 等配置指向 Cloudflare 托管站点
+
+如果不是 Cloudflare 公开站点，不要读取 Cloudflare 自动部署 reference，继续后续验证和推送。
+
+如果是 Cloudflare 公开站点，检查 `.github/workflows/*.yml` 和 `.github/workflows/*.yaml`。如果已经有能在 `push` 到生产分支后部署 Cloudflare 的 workflow，不要读取自动部署 reference，只记录 workflow 名称。
+
+只有缺少自动部署 workflow 时，才读取 `references/cloudflare-auto-deploy.md`，按其中流程添加 workflow、检查 secrets，并把新增 workflow 放进本次提交。
+
+如果 Cloudflare 自动部署所需的 GitHub secrets 缺失，先触发本机 `infra-credential-lookup` skill，按它的顺序查找 `CLOUDFLARE_ACCOUNT_ID` 和 `CLOUDFLARE_API_TOKEN`：
+
+- 当前项目 `.env`、`.env.local`、`.env.production`、`.dev.vars`
+- 当前项目的相邻 `../jinzheceo/.env`
+- 本机已登录的 Cloudflare / GitHub CLI
+
+只报告凭据来源和权限边界，不输出 secret 值。找到 token 后，必须用目标 Cloudflare API 验证权限，例如 Workers 或 D1 项目调用。验证可用后，使用 `gh secret set` 写入缺失的 repo secrets。只有本机找不到可用凭据，或 token 权限不足时，才向用户索要最小所需凭据。
+
+### 5. 自动验证
 
 - 跑适用的 lint / check
 - 跑适用的 build
@@ -74,7 +109,7 @@ worker subagent 的初始任务必须包含：
 - 只修复安全、窄范围的问题
 - 重跑对应命令直到通过，或停止并报告 blocker
 
-### 5. 保证工作区干净
+### 6. 保证工作区干净
 
 运行 `git status`。
 
@@ -85,33 +120,63 @@ worker subagent 的初始任务必须包含：
 - 提交后重新运行 `git status`
 - 确认工作区干净
 
-### 6. 推送远端
+提交信息规则：
+
+- 默认不要加 `[skip deploy]`
+- 只有用户明确要求“只 push 不部署”“跳过部署”“不要发布线上”时，commit message 才加 `[skip deploy]`
+- 如果本次 push 的 commit range 中任一 commit message 包含 `[skip deploy]`，后续不得执行 IndexNow；最终报告说明本次自动部署被跳过
+
+### 7. 推送远端
 
 当所有适用验证通过或标记为 `not applicable`，且工作区完全干净后，执行 `git push`。
 
-### 7. Push 后 URL 收集
+### 8. 等待 Cloudflare 自动部署
 
-如果前面适用了 `references/post-push-indexing.md`，按其中 URL collection 流程执行。
+如果项目是 Cloudflare 公开站点：
+
+- 不要在本机运行 `wrangler pages deploy`、`wrangler deploy` 或其它本地发布命令
+- push 后用 `gh run list` 按 head SHA、branch 和 workflow name 找到对应 workflow run
+- 用 `gh run watch <run-id> --exit-status` 等待自动部署完成
+- 部署失败时读取非敏感日志，报告失败步骤；不要执行 IndexNow
+- 部署成功后，用 production URL、sitemap、robots 或项目已有健康检查验证线上已更新
+
+如果本次 push 的 commit range 中任一 commit message 包含 `[skip deploy]`：
+
+- 不等待部署
+- 不执行 IndexNow
+- 最终报告说明部署和索引都被 `[skip deploy]` 跳过
+
+如果不是 Cloudflare 公开站点，报告跳过 Cloudflare 自动部署检查的原因。
+
+### 9. 部署后 URL 收集
+
+如果前面适用了 `references/post-push-indexing.md`，并且满足以下条件之一，才按其中 URL collection 流程执行：
+
+- 项目不是 Cloudflare 站点
+- Cloudflare 站点的 GitHub Actions 自动部署已经完成并通过验证
+
+Cloudflare 公开站点没有完成发布验证时，不要收集或提交 IndexNow。
 
 否则报告跳过索引和原因。
 
-### 8. Push 后 IndexNow 提交
+### 10. 部署后 IndexNow 提交
 
 如果收集到了公开 URL，按 `references/post-push-indexing.md` 提交。
 
 如果提交失败，报告失败和命令输出，不要声称成功。
 
-### 9. Search Console Sitemap 检查
+### 11. Search Console Sitemap 检查
 
 只有 sitemap 相关时才按 `references/post-push-indexing.md` 执行。
 
 如果缺少 Google 凭据或站点 ownership，跳过并报告原因。
 
-### 10. 完成汇报
+### 12. 完成汇报
 
 报告：
 
 - 验证和 push 已完成
+- Cloudflare GitHub Actions 自动部署是否运行；如果跳过，说明原因；如果运行，报告 workflow run 和验证结果
 - IndexNow 是否运行、提交 URL 数量和结果
 - IndexNow 如果跳过，说明原因
 - Search Console sitemap 处理结果或跳过原因
