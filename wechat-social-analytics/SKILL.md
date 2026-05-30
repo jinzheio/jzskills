@@ -31,6 +31,7 @@ wx sessions --json -n 5
 ## 运行注意事项
 
 - 避免并发运行多个 `wx` 命令，尤其是刚执行过 `wx init --force`、刚清理 cache 或 daemon 未启动时。`wx-cli` 会在后台解密并缓存数据库，并发触发 daemon/cache 重建时可能出现 `database disk image is malformed`。遇到该错误，先运行 `wx daemon stop`，再单线程重跑命令。
+- 每次完成统计后运行 `wx daemon stop`，不要让 `wx-cli` 后台进程长期占用微信缓存。若用户反馈微信图片发送、截图或附件异常，先执行 `wx daemon stop`，再检查并清理残留的 `wx-cli` 进程，然后让用户重启微信。
 - 如果微信界面能看到旧消息，但 `wx history` / `wx search` 查不到，通常是旧消息所在的数据库分片密钥没有被提取。让用户在微信里翻到旧记录并保持登录，再执行 `sudo wx init --force`，确认 `wx-cli` 已提取对应分片密钥。不要输出密钥缓存文件路径或内容。然后停止 daemon 并重跑查询。
 - `wx stats` 的 `top_senders` 可能把同一个显示名拆成多行，例如同名、改名、不同内部 sender id 显示为同一昵称。回答活跃 Top 时保留原始结果，并提示“同显示名可能未合并”；如用户需要合并口径，再基于显示名做二次汇总。
 
