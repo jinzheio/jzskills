@@ -1,6 +1,6 @@
 ---
 name: jz-check-cloud-agent
-description: 诊断和运维云端 agent 部署。登录服务器检查 OpenClaw agent 和 Hermes agent 的运行状态，排查 Telegram 消息异常、cron job 故障、Codex OAuth 过期、home channel 丢失、support 邮件接收等问题。触发词包括：agent 不工作、agent 没回复、hermes agent、codex 用量、fallback、cron job 失败、Codex OAuth、home channel、gateway、support 邮箱、客户邮件、clawsimplesupport 群。当问题涉及 Hermes agent 处理邮件或群内回复时，优先按 Hermes 诊断，不要默认改走 OpenClaw support-inbox cron。
+description: 诊断和运维云端 agent 部署。登录服务器检查 OpenClaw agent 和 Hermes agent 的运行状态，排查 Telegram 消息异常、cron job 故障、Codex OAuth 过期、home channel 丢失、support 邮件接收，并通过 SSH 隧道打开远程 Chrome 桌面。触发词包括：agent 不工作、agent 没回复、hermes agent、codex 用量、fallback、cron job 失败、Codex OAuth、home channel、gateway、打开远程桌面、远程 Chrome、noVNC、support 邮箱、客户邮件、clawsimplesupport 群。当问题涉及 Hermes agent 处理邮件或群内回复时，优先按 Hermes 诊断，不要默认改走 OpenClaw support-inbox cron。
 ---
 
 # 云端 Agent 诊断
@@ -50,14 +50,109 @@ deployments:
 
 所有固定信息从该配置文件读取，skill 正文不再硬编码。
 
-**读取配置的函数**（在需要时通过 Python 解析）：
+**配置字段说明**（`[required]` 必须填写，`[optional]` 可留空或删除）：
+
+| 字段 | 要求 | 说明 |
+|------|------|------|
+| `id` | required | 唯一标识，如 `prod-aone` |
+| `display_name` | required | 报告和触发规则中使用的可读名称 |
+| `user_email` | required | 部署负责人邮箱 |
+| `server.ip` | required | 服务器公网 IPv4 |
+| `server.ssh_user` | required | SSH 登录用户 |
+| `server.ssh_identity_file` | required | SSH 私钥路径 |
+| `server.install_dir` | required | 应用根目录 |
+| `openclaw.state_dir` | required | OpenClaw 状态/配置目录 |
+| `openclaw.agent_name` | required | openclaw.json 中的 agent 名称 |
+| `hermes.home_dir` | required | Hermes HERMES_HOME 目录 |
+| `hermes.agent_dir` | required | Hermes-agent 安装目录 |
+| `hermes.gateway_service` | required | Hermes gateway systemd 服务名 |
+| `hermes.agent_display_name` | required | 报告和触发规则中使用的显示名称 |
+| `remote_desktop` | optional | 整块删除则跳过远程桌面功能 |
+| `telegram.home_channel_id` | required | agent 归属 Telegram channel 的 chat ID |
+| `telegram.home_channel_name` | required | home channel 可读名称 |
+| `telegram.support_group_name` | required | support 讨论群名称 |
+| `telegram.support_group_chat_id` | required | support 群 chat ID |
+| `local_repo` | required | 本地仓库路径 |
+
+**读取并校验配置的函数**（在需要时通过 Python 解析）：
 
 ```python
-import yaml, os
+import yaml, os, sys
+
+REQUIRED_FIELDS = [
+    # (dotted key, human label)
+    ("id", "Deployment ID"),
+    ("display_name", "Display name"),
+    ("user_email", "User email"),
+    ("server.ip", "Server IP"),
+    ("server.ssh_user", "SSH user"),
+    ("server.ssh_identity_file", "SSH identity file"),
+    ("server.install_dir", "Install directory"),
+    ("openclaw.state_dir", "OpenClaw state directory"),
+    ("openclaw.agent_name", "OpenClaw agent name"),
+    ("hermes.home_dir", "Hermes home directory"),
+    ("hermes.agent_dir", "Hermes agent directory"),
+    ("hermes.gateway_service", "Hermes gateway service"),
+    ("hermes.agent_display_name", "Hermes agent display name"),
+    ("telegram.home_channel_id", "Telegram home channel ID"),
+    ("telegram.home_channel_name", "Telegram home channel name"),
+    ("telegram.support_group_name", "Support group name"),
+    ("telegram.support_group_chat_id", "Support group chat ID"),
+    ("local_repo", "Local repo path"),
+]
+
+PLACEHOLDER_PATTERNS = [
+    "you@example.com",
+    "1.2.3.4",
+    "-1001234567890",
+    "-1009876543210",
+    "My Home Channel",
+    "My Support Group",
+    "My Agent",
+    "my-agent",
+    "example-deployment",
+    "Example Deployment",
+    "~/Projects/myapp",
+    "/opt/myapp",
+]
+
+def _get_nested(d: dict, dotted_key: str):
+    keys = dotted_key.split(".")
+    val = d
+    for k in keys:
+        if not isinstance(val, dict):
+            return None
+        val = val.get(k)
+    return val
+
+def validate_config(cfg: dict):
+    """Abort with a clear message if any required field is missing or still a placeholder."""
+    missing = []
+    still_placeholder = []
+    for key, label in REQUIRED_FIELDS:
+        val = _get_nested(cfg, key)
+        if val is None or val == "":
+            missing.append(f"  - {label} ({key}): not set")
+        elif isinstance(val, str) and val.strip() in PLACEHOLDER_PATTERNS:
+            still_placeholder.append(f"  - {label} ({key}): still placeholder \"{val.strip()}\"")
+    errors = []
+    if missing:
+        errors.append("Missing required fields:\n" + "\n".join(missing))
+    if still_placeholder:
+        errors.append("Fields still using example values:\n" + "\n".join(still_placeholder))
+    if errors:
+        msg = "\n\n".join(errors)
+        msg += (
+            "\n\nEdit ~/.config/skills/check-cloud-agent.yaml and replace every"
+            " placeholder with your real values.  See config.example.yaml in the"
+            " skill directory for field descriptions."
+        )
+        print(msg, file=sys.stderr)
+        sys.exit(1)
 
 def load_config(deployment_id: str | None = None) -> dict:
-    """Load check-cloud-agent config. Returns the first matching deployment,
-    or the first deployment if no id is given, or searches by display_name."""
+    """Load check-cloud-agent config, validate required fields, and return the
+    matching deployment.  Aborts if required fields are missing or placeholder."""
     # Priority: global config > skill-local config
     global_path = os.path.expanduser("~/.config/skills/check-cloud-agent.yaml")
     local_path = os.path.join(os.path.dirname(__file__), "config.yaml")
@@ -74,8 +169,11 @@ def load_config(deployment_id: str | None = None) -> dict:
     if deployment_id:
         for d in deployments:
             if d.get("id") == deployment_id or d.get("display_name", "").lower() == deployment_id.lower():
+                validate_config(d)
                 return d
-    return deployments[0] if deployments else {}
+    cfg = deployments[0] if deployments else {}
+    validate_config(cfg)
+    return cfg
 
 cfg = load_config()
 ```
@@ -98,8 +196,19 @@ cfg = load_config()
 - `home channel`
 - `codex 用量`
 - `fallback`
+- `打开远程桌面`
+- `打开远程 Chrome`
+- `noVNC`
 
 若用户要求"{{ config.hermes.agent_display_name }}直接处理邮件，不要通过 OpenClaw"，检查重点应放在 Hermes 的 cron 配置、sessions、gateway 日志、Codex auth、Telegram home channel 和 `hermes_cli.main status`。只有在用户明确要求排查旧 OpenClaw support-inbox 任务时，才检查 `{{ config.openclaw.state_dir }}/cron` 里的 support inbox job。
+
+若用户要求配置、验证或排查 Hermes 原生模型 fallback，读取
+[`references/hermes-native-fallback.md`](references/hermes-native-fallback.md)。
+普通状态检查不加载该 reference。
+
+若用户要求打开远程桌面、远程 Chrome 或 noVNC，读取
+[`references/open-remote-desktop.md`](references/open-remote-desktop.md)。
+连接地址和 SSH 参数从 `~/.config/skills/check-cloud-agent/<deployment>.yaml` 读取，不把实际地址写入 skill。
 
 ## 步骤
 
@@ -150,6 +259,13 @@ ssh -o BatchMode=yes -o StrictHostKeyChecking=no \
 ```
 
 若 SSH 在握手阶段偶发 `kex_exchange_identification: Connection closed`，先等 15-30 秒后重试。先用 `ping`、`nc -vz {{ config.server.ip }} 22`、`nc -vz {{ config.server.ip }} 3000` 判断机器是否在线，不要直接重启机器。
+
+### 2.1 打开远程桌面
+
+仅当用户要求打开远程桌面、远程 Chrome 或 noVNC 时，读取
+[`references/open-remote-desktop.md`](references/open-remote-desktop.md)。
+
+先确认远端 noVNC 只监听 loopback，再建立 SSH 隧道。不要把远端 `6080` 端口开放到公网。
 
 ### 3. 基础服务检查
 
@@ -235,6 +351,24 @@ ssh -tt -o BatchMode=yes -o StrictHostKeyChecking=no \
 把显示出的 `https://auth.openai.com/codex/device` 和 code 发给用户。用户完成授权后，确认是否写入 `credential_pool.openai-codex`。
 
 当前 Hermes cron resolver 需要 `providers.openai-codex.tokens`。如果 OAuth 只写进 `credential_pool.openai-codex`，把最新 credential 激活成 provider state。操作前备份 `auth.json`，操作后保持 `clawsimple:clawsimple 600`，再用 `resolve_codex_runtime_credentials()` 验证。
+
+### 5.1 检查 Hermes 原生模型 fallback
+
+仅当用户要求增加 fallback、Codex 用尽后继续工作、验证 fallback，或日志显示主模型失败后没有切换时，读取
+[`references/hermes-native-fallback.md`](references/hermes-native-fallback.md)。
+
+基础检查：
+
+```bash
+sudo -u clawsimple env \
+  HOME={{ config.server.install_dir }} \
+  HERMES_HOME={{ config.hermes.home_dir }} \
+  PATH={{ config.hermes.agent_dir }}/venv/bin:/usr/bin \
+  VIRTUAL_ENV={{ config.hermes.agent_dir }}/venv \
+  {{ config.hermes.agent_dir }}/venv/bin/python -m hermes_cli.main fallback list
+```
+
+不要用自建代理或修改 `run_agent.py` 实现已有的 Hermes 原生 fallback。不要仅凭 key 名判断 Kimi 区域；先按 reference 验证 endpoint。
 
 ### 6. 检查 Hermes Codex streaming 错误
 
