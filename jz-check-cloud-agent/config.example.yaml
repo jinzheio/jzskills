@@ -1,0 +1,26 @@
+# check-cloud-agent configuration
+# Copy this to ~/.config/skills/check-cloud-agent.yaml and fill in your values.
+
+deployments:
+  - id: "example-deployment"
+    display_name: "Example Deployment"
+    user_email: "you@example.com"
+    server:
+      ip: "1.2.3.4"
+      ssh_user: "root"
+      ssh_identity_file: "~/.ssh/id_ed25519"
+      install_dir: "/opt/myapp"
+    openclaw:
+      state_dir: "/opt/myapp/.openclaw"
+      agent_name: "my-agent"
+    hermes:
+      home_dir: "/opt/myapp/.hermes/main"
+      agent_dir: "/opt/myapp/.hermes-agent/hermes-agent"
+      gateway_service: "hermes-gateway-main.service"
+      agent_display_name: "My Agent"
+    telegram:
+      home_channel_id: "-1001234567890"
+      home_channel_name: "My Home Channel"
+      support_group_name: "My Support Group"
+      support_group_chat_id: "-1009876543210"
+    local_repo: "~/Projects/myapp"
