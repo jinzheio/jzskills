@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-Reusable agent skills for site launch work, code review and push workflows, file delivery, billing analysis, and local WeChat data analysis.
+Reusable agent skills for site launch work, code review and push workflows, and billing analysis.
 
 This repository is a public skill pack. Each skill folder lives at the repository root and contains its own `SKILL.md` and optional bundled resources.
 
@@ -10,37 +10,36 @@ This repository is a public skill pack. Each skill folder lives at the repositor
 
 | Skill | Use it for |
 | --- | --- |
-| `upstart-site` | Publish a local web project through GitHub and Vercel. |
-| `new-domain-launch` | Connect a deployed site to a custom domain with DNS, HTTPS, and redirects. |
-| `index-onboarding` | Set up analytics and search indexing after the final domain works. |
-| `add-indexnow` | Add IndexNow key verification, URL collection, and submission scripts to an existing site. |
-| `add-cloud-agent-collaborator` | Prepare fork-only GitHub permissions for a cloud-agent developer account. |
-| `commit-code` | Review workspace changes and create scoped commits after confirmation. |
-| `push-code` | Verify, push, and run post-push indexing sync. |
-| `get-fast-download` | Upload files from `software/` and return temporary fast download links. |
-| `vercel-cost-analysis` | Explain Vercel usage, billed cost, Pro fees, and receipt/card charge differences. |
-| `wechat-social-analytics` | Analyze local WeChat data with `wx-cli`: group activity, interaction topology, private-chat volume, shared groups, and daily group summaries. |
-| `personal-context-builder` | Interview the user to create persistent profile and writing-style files for Codex, ChatGPT, Claude, and Claude Code. |
+| `jz-create-site` | Publish a local web project through GitHub and Vercel. |
+| `jz-launch-domain` | Connect a deployed site to a custom domain with DNS, HTTPS, and redirects. |
+| `jz-setup-site-analytics` | Set up analytics and search indexing after the final domain works. |
+| `jz-add-search-index` | Add IndexNow key verification, URL collection, and submission scripts to an existing site. |
+| `jz-add-gh-collaborator` | Prepare fork-only GitHub permissions for a cloud-agent developer account. |
+| `jz-commit-code` | Review workspace changes and create scoped commits after confirmation. |
+| `jz-push-code` | Verify, push, and run post-push indexing sync. |
+| `jz-audit-vercel-cost` | Explain Vercel usage, billed cost, Pro fees, and receipt/card charge differences. |
+| `jz-audit-cf-cost` | Read Cloudflare bills and GraphQL usage, check running resource costs in the current billing cycle, and identify billing anomalies. |
+| `jz-build-personal-context` | Interview the user to create persistent profile and writing-style files for Codex, ChatGPT, Claude, and Claude Code. |
 
 Recommended sequence for a new site:
 
 ```text
-upstart-site -> new-domain-launch -> index-onboarding
+jz-create-site -> jz-launch-domain -> jz-setup-site-analytics
 ```
 
-`add-indexnow` is separate because it is also useful for existing sites that only need IndexNow support.
+`jz-add-search-index` is separate because it is also useful for existing sites that only need IndexNow support.
 
 ## Code Upload Workflow
 
 For normal development work, use:
 
 ```text
-commit-code -> push-code
+jz-commit-code -> jz-push-code
 ```
 
-`commit-code` reviews the working tree, reports risks, waits for confirmation, and commits only the intended files. `push-code` runs verification, keeps the git tree clean, pushes the branch, and then uses `add-indexnow` to ensure IndexNow URL collection and submission are available for changed public pages.
+`jz-commit-code` reviews the working tree, reports risks, waits for confirmation, and commits only the intended files. `jz-push-code` runs verification, keeps the git tree clean, pushes the branch, and then uses `jz-add-search-index` to ensure IndexNow URL collection and submission are available for changed public pages.
 
-`push-code` should not resubmit an unchanged sitemap to Google Search Console after every page edit. It should check or submit a sitemap only when the sitemap route, robots reference, canonical host, public route structure, or Search Console state changed. For ordinary edits to existing pages, IndexNow URL submission is the post-push sync path.
+`jz-push-code` should not resubmit an unchanged sitemap to Google Search Console after every page edit. It should check or submit a sitemap only when the sitemap route, robots reference, canonical host, public route structure, or Search Console state changed. For ordinary edits to existing pages, IndexNow URL submission is the post-push sync path.
 
 ## Install
 
@@ -56,17 +55,16 @@ Codex example:
 
 ```bash
 mkdir -p ~/.codex/skills
-cp -R upstart-site ~/.codex/skills/
-cp -R new-domain-launch ~/.codex/skills/
-cp -R index-onboarding ~/.codex/skills/
-cp -R add-indexnow ~/.codex/skills/
-cp -R add-cloud-agent-collaborator ~/.codex/skills/
-cp -R commit-code ~/.codex/skills/
-cp -R push-code ~/.codex/skills/
-cp -R get-fast-download ~/.codex/skills/
-cp -R vercel-cost-analysis ~/.codex/skills/
-cp -R wechat-social-analytics ~/.codex/skills/
-cp -R personal-context-builder ~/.codex/skills/
+cp -R jz-create-site ~/.codex/skills/
+cp -R jz-launch-domain ~/.codex/skills/
+cp -R jz-setup-site-analytics ~/.codex/skills/
+cp -R jz-add-search-index ~/.codex/skills/
+cp -R jz-add-gh-collaborator ~/.codex/skills/
+cp -R jz-commit-code ~/.codex/skills/
+cp -R jz-push-code ~/.codex/skills/
+cp -R jz-audit-vercel-cost ~/.codex/skills/
+cp -R jz-audit-cf-cost ~/.codex/skills/
+cp -R jz-build-personal-context ~/.codex/skills/
 ```
 
 If your runner can read this repository directly, no copy step is needed.
@@ -78,47 +76,43 @@ Each skill may include an `agents/openai.yaml` file. These files provide display
 Invoke a skill by name in your agent:
 
 ```text
-Use $upstart-site to publish this local website.
+Use $jz-create-site to publish this local website.
 ```
 
 ```text
-Use $new-domain-launch to connect example.com to this deployed site.
+Use $jz-launch-domain to connect example.com to this deployed site.
 ```
 
 ```text
-Use $index-onboarding to set up analytics and search indexing for example.com.
+Use $jz-setup-site-analytics to set up analytics and search indexing for example.com.
 ```
 
 ```text
-Use $add-indexnow to add IndexNow support to this web app.
+Use $jz-add-search-index to add IndexNow support to this web app.
 ```
 
 ```text
-Use $add-cloud-agent-collaborator to prepare fork-only GitHub access for this repo.
+Use $jz-add-gh-collaborator to prepare fork-only GitHub access for this repo.
 ```
 
 ```text
-Use $commit-code to review and commit these changes.
+Use $jz-commit-code to review and commit these changes.
 ```
 
 ```text
-Use $push-code to verify, push, and sync changed public URLs.
+Use $jz-push-code to verify, push, and sync changed public URLs.
 ```
 
 ```text
-Use $get-fast-download to create temporary download links for files in software/.
+Use $jz-audit-vercel-cost to reconcile this Vercel receipt with usage data.
 ```
 
 ```text
-Use $vercel-cost-analysis to reconcile this Vercel receipt with usage data.
+Use $jz-audit-cf-cost to check running resource costs in the current Cloudflare billing cycle.
 ```
 
 ```text
-Use $wechat-social-analytics to summarize this WeChat group and find the most active members.
-```
-
-```text
-Use $personal-context-builder to interview me, create about.md, voice.md, anti-style.md in ~/Projects/aboutme, and enable all targets with -g.
+Use $jz-build-personal-context to interview me, create about.md, voice.md, anti-style.md in ~/Projects/aboutme, and enable all targets with -g.
 ```
 
 ## Configuration
@@ -137,16 +131,15 @@ Prepare only the credentials needed for the skills you run.
 
 | Skill | Required for the core path | Optional branches |
 | --- | --- | --- |
-| `upstart-site` | GitHub CLI auth (`gh auth login`), Vercel CLI auth (`vercel login`), `GITHUB_OWNER`, `VERCEL_SCOPE` | Production app env vars copied to Vercel |
-| `new-domain-launch` | Hosting provider auth, DNS provider auth when DNS must be changed, registrar auth when nameservers must be changed | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `SPACESHIP_API_KEY`, `SPACESHIP_API_SECRET`, Cloudflare Email Routing permissions if inbound forwarding is requested, authenticated browser session for providers without API coverage |
-| `index-onboarding` | Final public domain | Analytics credentials, Google OAuth/ADC for Search Console and Site Verification, Cloudflare DNS token for verification TXT records, `BING_WEBMASTER_API_KEY`, `SITE_INTEGRATIONS_CONFIG` with per-domain Clarity config, or `CLARITY_ID` and `CLARITY_TOKEN` |
-| `add-indexnow` | Writable repo with a known final host | `INDEXNOW_KEY` only if overriding the generated key; otherwise the skill creates a fresh key |
-| `add-cloud-agent-collaborator` | GitHub CLI auth for `OWNER_ACCOUNT`; agent account details from local config or user input | `ADD_CLOUD_AGENT_COLLABORATOR_CONFIG`, `AGENT_GITHUB`, `AGENT_EMAIL` |
-| `commit-code` | Git repository with local changes | None |
-| `push-code` | Clean committed branch and remote push access | IndexNow/Search Console credentials only for public site URL sync |
-| `get-fast-download` | A target repo with a `software/` directory and public files safe to upload | Network access to `storage.to`; existing `.fast-download-links.tsv` to skip uploaded files |
-| `vercel-cost-analysis` | Vercel CLI auth and access to the relevant team/project usage | Receipt date, billing cycle day, platform fee override |
-| `wechat-social-analytics` | Installed `wx-cli`, logged-in WeChat, extracted local database keys | `sudo wx init --force` after scrolling old history when older message shards need keys |
+| `jz-create-site` | GitHub CLI auth (`gh auth login`), Vercel CLI auth (`vercel login`), `GITHUB_OWNER`, `VERCEL_SCOPE` | Production app env vars copied to Vercel |
+| `jz-launch-domain` | Hosting provider auth, DNS provider auth when DNS must be changed, registrar auth when nameservers must be changed | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `SPACESHIP_API_KEY`, `SPACESHIP_API_SECRET`, Cloudflare Email Routing permissions if inbound forwarding is requested, authenticated browser session for providers without API coverage |
+| `jz-setup-site-analytics` | Final public domain | Analytics credentials, Google OAuth/ADC for Search Console and Site Verification, Cloudflare DNS token for verification TXT records, `BING_WEBMASTER_API_KEY`, `SITE_INTEGRATIONS_CONFIG` with per-domain Clarity config, or `CLARITY_ID` and `CLARITY_TOKEN` |
+| `jz-add-search-index` | Writable repo with a known final host | `INDEXNOW_KEY` only if overriding the generated key; otherwise the skill creates a fresh key |
+| `jz-add-gh-collaborator` | GitHub CLI auth for `OWNER_ACCOUNT`; agent account details from local config or user input | `ADD_CLOUD_AGENT_COLLABORATOR_CONFIG`, `AGENT_GITHUB`, `AGENT_EMAIL` |
+| `jz-commit-code` | Git repository with local changes | None |
+| `jz-push-code` | Clean committed branch and remote push access | IndexNow/Search Console credentials only for public site URL sync |
+| `jz-audit-vercel-cost` | Vercel CLI auth and access to the relevant team/project usage | Receipt date, billing cycle day, platform fee override |
+| `jz-audit-cf-cost` | Cloudflare API Token (Account: Analytics: Read), `CLOUDFLARE_ACCOUNT_ID` | Optional hourly cost monitor (jinzheceo) |
 
 Common variables:
 
@@ -159,10 +152,9 @@ Common variables:
 - `UMAMI_API_KEY`: fallback only, for Umami Cloud or compatible providers that explicitly support API-key auth.
 - Google OAuth/ADC: Search Console and Site Verification access for the Google account that owns the site. Common local options are `gcloud auth application-default login`, `GOOGLE_APPLICATION_CREDENTIALS`, or another authenticated Google API session.
 - `BING_WEBMASTER_API_KEY`: Bing Webmaster Tools site verification and sitemap submission.
-- `SITE_INTEGRATIONS_CONFIG`: optional domain-to-repo and integration metadata map. Clarity first reads per-domain `clarity.project_id` and `clarity.token` entries from this map. If the map is missing or lacks Clarity for the target domain, `index-onboarding` checks `CLARITY_ID` and `CLARITY_TOKEN` in the current environment. If neither source has both values, Clarity is skipped and reported.
+- `SITE_INTEGRATIONS_CONFIG`: optional domain-to-repo and integration metadata map. Clarity first reads per-domain `clarity.project_id` and `clarity.token` entries from this map. If the map is missing or lacks Clarity for the target domain, `jz-setup-site-analytics` checks `CLARITY_ID` and `CLARITY_TOKEN` in the current environment. If neither source has both values, Clarity is skipped and reported.
 - `CLARITY_ID` and `CLARITY_TOKEN`: optional Clarity project id and project-level Data Export API token for the current run.
 - `ADD_CLOUD_AGENT_COLLABORATOR_CONFIG`: optional local env file for cloud-agent GitHub permission setup.
-- `wx` / `wx-cli`: local WeChat data CLI used by `wechat-social-analytics`. The skill reads only local cached WeChat data; unsynced or unkeyed message shards are not available until WeChat loads them and `wx init --force` extracts the keys.
 
 Example `SITE_INTEGRATIONS_CONFIG` file:
 
@@ -202,7 +194,7 @@ Missing optional credentials or config files should not stop unrelated steps. Fo
 
 ## Index onboarding data sources
 
-`index-onboarding` combines several sources because they answer different questions about the same site.
+`jz-setup-site-analytics` combines several sources because they answer different questions about the same site.
 
 | Source | Main use | Overlap | Unique value |
 | --- | --- | --- | --- |

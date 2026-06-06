@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-用于网站发布、代码提交推送、文件下载、账单分析和本地微信数据分析的 agent skills。
+用于网站发布、代码提交推送和账单分析的 agent skills。
 
 这是一个公开 skill pack。项目根目录下的每个 skill 目录都是独立 skill，包含自己的 `SKILL.md` 和可选资源文件。
 
@@ -10,37 +10,36 @@
 
 | Skill | 用途 |
 | --- | --- |
-| `upstart-site` | 通过 GitHub 和 Vercel 发布本地 Web 项目。NextJS 或者静态页面都可以。如果没有云端 repo，会新建 Private Repo。 |
-| `new-domain-launch` | 为已部署的网站绑定自定义域名、DNS、HTTPS 和跳转。 |
-| `index-onboarding` | 在正式域名可访问后，接入统计和搜索索引。 |
-| `add-indexnow` | 为已有网站添加 IndexNow 验证 key、URL 收集脚本和提交脚本。 |
-| `add-cloud-agent-collaborator` | 为 cloud-agent 开发账号准备 fork-only GitHub 权限。 |
-| `commit-code` | Review 工作区变更，确认后按范围提交。 |
-| `push-code` | 验证、推送代码，并同步变更页面的索引。 |
-| `get-fast-download` | 上传 `software/` 下的文件，生成临时快速下载链接。 |
-| `vercel-cost-analysis` | 解释 Vercel usage、billed cost、Pro 固定费和信用卡扣款差异。 |
-| `wechat-social-analytics` | 基于本地 `wx-cli` 数据分析微信群活跃成员、互动拓扑、私聊交流量、共同群和每日群总结。 |
-| `personal-context-builder` | 通过访谈生成个人上下文和写作风格文件，供 Codex、ChatGPT、Claude、Claude Code 使用。 |
+| `jz-create-site` | 通过 GitHub 和 Vercel 发布本地 Web 项目。NextJS 或者静态页面都可以。如果没有云端 repo，会新建 Private Repo。 |
+| `jz-launch-domain` | 为已部署的网站绑定自定义域名、DNS、HTTPS 和跳转。 |
+| `jz-setup-site-analytics` | 在正式域名可访问后，接入统计和搜索索引。 |
+| `jz-add-search-index` | 为已有网站添加 IndexNow 验证 key、URL 收集脚本和提交脚本。 |
+| `jz-add-gh-collaborator` | 为 cloud-agent 开发账号准备 fork-only GitHub 权限。 |
+| `jz-commit-code` | Review 工作区变更，确认后按范围提交。 |
+| `jz-push-code` | 验证、推送代码，并同步变更页面的索引。 |
+| `jz-audit-vercel-cost` | 解释 Vercel usage、billed cost、Pro 固定费和信用卡扣款差异。 |
+| `jz-audit-cf-cost` | 读取 Cloudflare 账单和 GraphQL usage，检查当前计费周期运行中资源的按量费用，识别异常计费。 |
+| `jz-build-personal-context` | 通过访谈生成个人上下文和写作风格文件，供 Codex、ChatGPT、Claude、Claude Code 使用。 |
 
 新网站的推荐顺序：
 
 ```text
-upstart-site -> new-domain-launch -> index-onboarding
+jz-create-site -> jz-launch-domain -> jz-setup-site-analytics
 ```
 
-`add-indexnow` 单独保留，因为已有网站可能只需要补 IndexNow。
+`jz-add-search-index` 单独保留，因为已有网站可能只需要补 IndexNow。
 
 ## 代码上传流程
 
 日常开发流程：
 
 ```text
-commit-code -> push-code
+jz-commit-code -> jz-push-code
 ```
 
-`commit-code` 会 review 工作区、报告风险、等待确认，并只提交目标文件。`push-code` 会执行验证、保持 git 工作区干净、推送分支，并调用 `add-indexnow` 确保目标仓库具备 IndexNow URL 收集和提交能力，用于同步变更过的公开页面。
+`jz-commit-code` 会 review 工作区、报告风险、等待确认，并只提交目标文件。`jz-push-code` 会执行验证、保持 git 工作区干净、推送分支，并调用 `jz-add-search-index` 确保目标仓库具备 IndexNow URL 收集和提交能力，用于同步变更过的公开页面。
 
-`push-code` 不应该在每次页面编辑后重复向 Google Search Console 提交同一个 sitemap。只有 sitemap 路由、robots 引用、canonical host、公开路由结构或 Search Console 状态发生变化时，才检查或提交 sitemap。普通的既有页面更新，走 IndexNow URL 提交通道。
+`jz-push-code` 不应该在每次页面编辑后重复向 Google Search Console 提交同一个 sitemap。只有 sitemap 路由、robots 引用、canonical host、公开路由结构或 Search Console 状态发生变化时，才检查或提交 sitemap。普通的既有页面更新，走 IndexNow URL 提交通道。
 
 ## 安装
 
@@ -56,17 +55,16 @@ Codex 示例：
 
 ```bash
 mkdir -p ~/.codex/skills
-cp -R upstart-site ~/.codex/skills/
-cp -R new-domain-launch ~/.codex/skills/
-cp -R index-onboarding ~/.codex/skills/
-cp -R add-indexnow ~/.codex/skills/
-cp -R add-cloud-agent-collaborator ~/.codex/skills/
-cp -R commit-code ~/.codex/skills/
-cp -R push-code ~/.codex/skills/
-cp -R get-fast-download ~/.codex/skills/
-cp -R vercel-cost-analysis ~/.codex/skills/
-cp -R wechat-social-analytics ~/.codex/skills/
-cp -R personal-context-builder ~/.codex/skills/
+cp -R jz-create-site ~/.codex/skills/
+cp -R jz-launch-domain ~/.codex/skills/
+cp -R jz-setup-site-analytics ~/.codex/skills/
+cp -R jz-add-search-index ~/.codex/skills/
+cp -R jz-add-gh-collaborator ~/.codex/skills/
+cp -R jz-commit-code ~/.codex/skills/
+cp -R jz-push-code ~/.codex/skills/
+cp -R jz-audit-vercel-cost ~/.codex/skills/
+cp -R jz-audit-cf-cost ~/.codex/skills/
+cp -R jz-build-personal-context ~/.codex/skills/
 ```
 
 如果 runner 能直接读取这个仓库，不需要复制。
@@ -78,47 +76,43 @@ cp -R personal-context-builder ~/.codex/skills/
 在 agent 中按名称调用 skill：
 
 ```text
-使用 $upstart-site 发布这个本地网站。
+使用 $jz-create-site 发布这个本地网站。
 ```
 
 ```text
-使用 $new-domain-launch 把 example.com 绑定到这个已部署网站。
+使用 $jz-launch-domain 把 example.com 绑定到这个已部署网站。
 ```
 
 ```text
-使用 $index-onboarding 为 example.com 接入统计和搜索索引。
+使用 $jz-setup-site-analytics 为 example.com 接入统计和搜索索引。
 ```
 
 ```text
-使用 $add-indexnow 为这个 Web app 添加 IndexNow 支持。
+使用 $jz-add-search-index 为这个 Web app 添加 IndexNow 支持。
 ```
 
 ```text
-使用 $add-cloud-agent-collaborator 为这个仓库准备 fork-only GitHub 权限。
+使用 $jz-add-gh-collaborator 为这个仓库准备 fork-only GitHub 权限。
 ```
 
 ```text
-使用 $commit-code review 并提交这些变更。
+使用 $jz-commit-code review 并提交这些变更。
 ```
 
 ```text
-使用 $push-code 验证、推送，并同步变更过的公开 URL。
+使用 $jz-push-code 验证、推送，并同步变更过的公开 URL。
 ```
 
 ```text
-使用 $get-fast-download 为 software/ 里的文件生成临时下载链接。
+使用 $jz-audit-vercel-cost 用 usage 数据核对这张 Vercel receipt。
 ```
 
 ```text
-使用 $vercel-cost-analysis 用 usage 数据核对这张 Vercel receipt。
+使用 $jz-audit-cf-cost 查看当前计费周期 Cloudflare 运行资源的按量费用。
 ```
 
 ```text
-使用 $wechat-social-analytics 总结这个微信群，并找出最活跃成员。
-```
-
-```text
-使用 $personal-context-builder 通过访谈在 ~/Projects/aboutme 生成 about.md、voice.md、anti-style.md，并用 -g 接入四个入口。
+使用 $jz-build-personal-context 通过访谈在 ~/Projects/aboutme 生成 about.md、voice.md、anti-style.md，并用 -g 接入四个入口。
 ```
 
 ## 配置
@@ -137,16 +131,15 @@ cp .env.example .env
 
 | Skill | 主流程需要 | 可选分支 |
 | --- | --- | --- |
-| `upstart-site` | GitHub CLI 登录（`gh auth login`）、Vercel CLI 登录（`vercel login`）、`GITHUB_OWNER`、`VERCEL_SCOPE` | 同步到 Vercel 的生产环境变量 |
-| `new-domain-launch` | 需要改 DNS 时要有 DNS provider 权限；需要改 nameserver 时要有 registrar 权限；需要绑定托管平台域名时要有 hosting provider 权限 | `CLOUDFLARE_API_TOKEN`、`CLOUDFLARE_ACCOUNT_ID`、`SPACESHIP_API_KEY`、`SPACESHIP_API_SECRET`；如果要配置邮件转发，需要 Cloudflare Email Routing 权限；没有 API 时可用已登录浏览器会话 |
-| `index-onboarding` | 正式可访问的域名 | 统计服务凭证、Google OAuth/ADC、Cloudflare DNS token、`BING_WEBMASTER_API_KEY`、带各域名 Clarity 配置的 `SITE_INTEGRATIONS_CONFIG`，或 `CLARITY_ID` 和 `CLARITY_TOKEN` |
-| `add-indexnow` | 可写的项目仓库和已确定的正式域名 | 只有在覆盖自动生成 key 时才需要 `INDEXNOW_KEY` |
-| `add-cloud-agent-collaborator` | `OWNER_ACCOUNT` 的 GitHub CLI 登录；agent 账号信息来自本机配置或用户输入 | `ADD_CLOUD_AGENT_COLLABORATOR_CONFIG`、`AGENT_GITHUB`、`AGENT_EMAIL` |
-| `commit-code` | 有本地变更的 Git 仓库 | 无 |
-| `push-code` | 已提交的干净分支和远端 push 权限 | 只有公开站点 URL 同步需要 IndexNow/Search Console 凭证 |
-| `get-fast-download` | 目标仓库存在 `software/` 目录，且文件适合公开临时上传 | 可访问 `storage.to`；已有 `.fast-download-links.tsv` 用于跳过已上传文件 |
-| `vercel-cost-analysis` | Vercel CLI 登录，并有目标 team/project usage 权限 | receipt 日期、billing cycle day、平台费覆盖值 |
-| `wechat-social-analytics` | 已安装 `wx-cli`，微信已登录，本地数据库密钥已提取 | 需要读取更早历史时，先在微信里翻到旧记录，再执行 `sudo wx init --force` 提取旧分片密钥 |
+| `jz-create-site` | GitHub CLI 登录（`gh auth login`）、Vercel CLI 登录（`vercel login`）、`GITHUB_OWNER`、`VERCEL_SCOPE` | 同步到 Vercel 的生产环境变量 |
+| `jz-launch-domain` | 需要改 DNS 时要有 DNS provider 权限；需要改 nameserver 时要有 registrar 权限；需要绑定托管平台域名时要有 hosting provider 权限 | `CLOUDFLARE_API_TOKEN`、`CLOUDFLARE_ACCOUNT_ID`、`SPACESHIP_API_KEY`、`SPACESHIP_API_SECRET`；如果要配置邮件转发，需要 Cloudflare Email Routing 权限；没有 API 时可用已登录浏览器会话 |
+| `jz-setup-site-analytics` | 正式可访问的域名 | 统计服务凭证、Google OAuth/ADC、Cloudflare DNS token、`BING_WEBMASTER_API_KEY`、带各域名 Clarity 配置的 `SITE_INTEGRATIONS_CONFIG`，或 `CLARITY_ID` 和 `CLARITY_TOKEN` |
+| `jz-add-search-index` | 可写的项目仓库和已确定的正式域名 | 只有在覆盖自动生成 key 时才需要 `INDEXNOW_KEY` |
+| `jz-add-gh-collaborator` | `OWNER_ACCOUNT` 的 GitHub CLI 登录；agent 账号信息来自本机配置或用户输入 | `ADD_CLOUD_AGENT_COLLABORATOR_CONFIG`、`AGENT_GITHUB`、`AGENT_EMAIL` |
+| `jz-commit-code` | 有本地变更的 Git 仓库 | 无 |
+| `jz-push-code` | 已提交的干净分支和远端 push 权限 | 只有公开站点 URL 同步需要 IndexNow/Search Console 凭证 |
+| `jz-audit-vercel-cost` | Vercel CLI 登录，并有目标 team/project usage 权限 | receipt 日期、billing cycle day、平台费覆盖值 |
+| `jz-audit-cf-cost` | Cloudflare API Token（Account: Analytics: Read），`CLOUDFLARE_ACCOUNT_ID` | 可选依赖已部署的每小时成本监控（`jinzheceo`） |
 
 常用变量：
 
@@ -159,10 +152,9 @@ cp .env.example .env
 - `UMAMI_API_KEY`：仅作 fallback，用于 Umami Cloud 或明确支持 API-key auth 的兼容服务。
 - Google OAuth/ADC：用于 Search Console 和 Site Verification，授权账号需要拥有站点权限。常见本地方式包括 `gcloud auth application-default login`、`GOOGLE_APPLICATION_CREDENTIALS`，或其他已认证的 Google API 会话。
 - `BING_WEBMASTER_API_KEY`：Bing Webmaster Tools 站点验证和 sitemap 提交。
-- `SITE_INTEGRATIONS_CONFIG`：可选的域名到仓库和集成元数据映射。Clarity 先读取这里的各域名 `clarity.project_id` 和 `clarity.token`。如果映射不存在，或目标域名没有 Clarity 配置，`index-onboarding` 会检查当前环境变量里的 `CLARITY_ID` 和 `CLARITY_TOKEN`。两个来源都缺少完整信息时，跳过 Clarity 并在汇总里说明。
+- `SITE_INTEGRATIONS_CONFIG`：可选的域名到仓库和集成元数据映射。Clarity 先读取这里的各域名 `clarity.project_id` 和 `clarity.token`。如果映射不存在，或目标域名没有 Clarity 配置，`jz-setup-site-analytics` 会检查当前环境变量里的 `CLARITY_ID` 和 `CLARITY_TOKEN`。两个来源都缺少完整信息时，跳过 Clarity 并在汇总里说明。
 - `CLARITY_ID` 和 `CLARITY_TOKEN`：可选的 Clarity project ID 和项目级 Data Export API token，用于当前运行。
 - `ADD_CLOUD_AGENT_COLLABORATOR_CONFIG`：cloud-agent GitHub 权限设置使用的本机 env 文件路径。
-- `wx` / `wx-cli`：`wechat-social-analytics` 使用的本地微信数据 CLI。该 skill 只读取本机缓存；微信未同步、未加载或尚未提取密钥的历史分片不会出现在结果里。
 
 `SITE_INTEGRATIONS_CONFIG` 文件示例：
 
@@ -202,7 +194,7 @@ export CLARITY_TOKEN=project-level-data-export-token
 
 ## Index onboarding 数据源
 
-`index-onboarding` 组合多个数据源，因为它们回答的是同一个网站的不同问题。
+`jz-setup-site-analytics` 组合多个数据源，因为它们回答的是同一个网站的不同问题。
 
 | 数据源 | 主要用途 | 重复之处 | 独特价值 |
 | --- | --- | --- | --- |

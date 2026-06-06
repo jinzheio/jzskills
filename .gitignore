@@ -19,3 +19,11 @@ build/
 *.log
 *-token.json
 *auth*.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
