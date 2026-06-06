@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cloudflare 成本核算"
+  short_description: "用 Cloudflare GraphQL Analytics 和 Dashboard 读取并解释 CF 账单、usage、计费周期费用"
+  default_prompt: "使用 $jz-audit-cf-cost 核对 Cloudflare usage/cost，查当前计费周期运行中资源的按量费用，识别异常计费。"
