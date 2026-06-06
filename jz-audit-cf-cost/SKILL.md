@@ -1,10 +1,10 @@
 ---
-name: audit-cf-cost
+name: jz-audit-cf-cost
 version: "1.0.0"
 description: "当需要读取、解释或核对 Cloudflare 账单、usage、计费周期费用、运行中资源成本时使用。适用于查 Cloudflare Dashboard Billable Usage、用 GraphQL Analytics API 查当前计费周期用量、评估 Durable Objects/Workers/D1/R2/KV/Queues 等付费资源的成本、发现异常计费。"
 ---
 
-# audit-cf-cost
+# Cloudflare 账单核算
 
 用于把 Cloudflare usage 数据解释成可核对的数字，发现当前计费周期运行中资源的意外费用。
 

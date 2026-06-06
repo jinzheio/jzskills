@@ -1,9 +1,9 @@
 ---
-name: find-revenue-site
+name: jz-find-revenue-site
 description: 获取与某个网站相似的高收入网站，或获取最近出现的高收入网站。用于用户说"获取与 xxx 相似的高收入网站""找 xxx 的相似站点里收入高的网站""查看 Similarweb 相似站点""查看 TrustMRR 同类型站点""获取最新的高收入网站""找最近赚钱的网站""按流量/收入阈值筛网站"时。默认结合 Similarweb、Semrush、TrustMRR、域名注册时间和公开页面证据。
 ---
 
-# High Revenue Site Finder
+# 高收入网站发现
 
 ## 目标
 

@@ -1,5 +1,5 @@
 ---
-name: migrate-to-cf
+name: jz-migrate-to-cf
 description: 将 Web 项目从 Vercel 迁移到 Cloudflare Workers、Pages 或 Cloudflare 原生托管。适用于用户要求迁移、发布、重新部署或把站点从 Vercel 移到 Cloudflare，尤其涉及自定义域名、Vercel GitHub 自动部署、Vercel 平台资源、vercel.json、Cloudflare DNS、Workers custom domains、D1、R2、Queues、Vectorize、Wrangler 或域名交接时。
 ---
 

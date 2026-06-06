@@ -1,10 +1,10 @@
 ---
-name: add-search-index
+name: jz-add-search-index
 version: "1.1.0"
 description: "当用户想给公开 Web 应用、Next.js 站点或静态站点增加 IndexNow 支持时使用：创建 key 验证文件、URL 收集脚本、URL 提交脚本、文档和验证流程。触发语包括 add IndexNow、submit changed URLs、set up post-push URL submission。不要单独用于 Google Search Console 或 Bing Webmaster onboarding；没有公开 URL 的仓库也不要使用。"
 ---
 
-# add-search-index
+# 站点搜索索引
 
 用于给已有 Web 项目增加 IndexNow 支持，通常是 Next.js 项目。
 

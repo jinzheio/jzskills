@@ -1,5 +1,5 @@
 ---
-name: push-code
+name: jz-push-code
 version: "1.4.2"
 description: "当用户要求验证并推送仓库时使用，包括 push this、发布代码、推送到远端。必须优先分派 worker subagent 在独立 context window 中执行验证、提交和推送流程。运行适用检查，确保目标变更已提交，然后 push。Cloudflare 公开站点优先使用 GitHub Actions 自动部署；只有缺 workflow 时才读取自动部署 reference 并补齐。用 [skip deploy] 跳过部署。部署完成后再执行 IndexNow。后端仓库、私有工具、API-only 改动或没有公开 URL 的改动不要运行 IndexNow。"
 ---

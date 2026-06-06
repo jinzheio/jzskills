@@ -1,9 +1,9 @@
 ---
-name: create-cf-token
+name: jz-create-cf-token
 description: Create or update a project-scoped, minimal-permission Cloudflare API token. Use this skill whenever the user asks to set up Cloudflare authentication, create a Cloudflare API token, configure wrangler credentials, or mentions needing Cloudflare access for a project. Also trigger on phrases like "set up CF token", "create wrangler token", "Cloudflare API token for this project", or when a project needs Workers/D1/R2/KV/AI access.
 ---
 
-# Cloudflare Project API Token
+# Cloudflare 项目 API Token
 
 Use a project-scoped, minimal-permission Cloudflare API token for Cloudflare work.
 

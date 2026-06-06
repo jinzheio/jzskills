@@ -1,10 +1,10 @@
 ---
-name: launch-domain
+name: jz-launch-domain
 version: "1.1.1"
 description: "当用户已有可用部署、想连接自定义域名时使用，包括 connect this domain、绑定域名、set up DNS、make www redirect、enable HTTPS。覆盖 registrar nameservers、DNS provider records、hosting-platform domain binding、TLS、apex/www 跳转，以及用户要求时的邮箱转发。站点还没有可用部署时不要使用；先用 create-site。"
 ---
 
-# launch-domain
+# 域名绑定与上线
 
 用于站点已经部署后，把自定义域名连到公开互联网。
 

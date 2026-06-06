@@ -1,10 +1,10 @@
 ---
-name: build-personal-context
+name: jz-build-personal-context
 version: "1.0.0"
 description: "当用户想通过访谈、苏格拉底提问或交互式方式创建或更新 about.md、voice.md、anti-style.md，并让 Codex、ChatGPT、Claude、Claude Code 使用这些个人上下文文件时使用。触发语包括 create about me、update aboutme、review personal context、voice profile、anti AI writing style、个人上下文、写作风格文件、全局 AI profile、-g 自动开启。用户在对话中途要求更新 aboutme 文件时，也用本 skill 回顾当前 session 并判断各文件是否需要更新。不是用于写单篇文章或普通润色。"
 ---
 
-# build-personal-context
+# 个人上下文构建
 
 通过访谈创建三份长期上下文文件，并把它们接入常用 agent。
 

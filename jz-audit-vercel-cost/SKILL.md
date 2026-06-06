@@ -1,10 +1,10 @@
 ---
-name: audit-vercel-cost
+name: jz-audit-vercel-cost
 version: "1.0.0"
 description: "当需要读取、解释或反推 Vercel 账单、信用卡扣款、usage credit、effectiveCost、billedCost、Pro 固定费、Build Minutes 成本时使用。适用于核对 Vercel receipt/card charge、把 vercel usage 解析成准确应付金额、区分 Pro 平台费与 non-Pro 额外用量。"
 ---
 
-# audit-vercel-cost
+# Vercel 账单核算
 
 用于把 Vercel `usage` 数据解释成可和信用卡账单核对的数字。
 

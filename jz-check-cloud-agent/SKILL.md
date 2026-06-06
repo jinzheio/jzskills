@@ -1,9 +1,9 @@
 ---
-name: check-cloud-agent
+name: jz-check-cloud-agent
 description: 诊断和运维云端 agent 部署。登录服务器检查 OpenClaw agent 和 Hermes agent 的运行状态，排查 Telegram 消息异常、cron job 故障、Codex OAuth 过期、home channel 丢失、support 邮件接收等问题。触发词包括：agent 不工作、agent 没回复、hermes agent、codex 用量、fallback、cron job 失败、Codex OAuth、home channel、gateway、support 邮箱、客户邮件、clawsimplesupport 群。当问题涉及 Hermes agent 处理邮件或群内回复时，优先按 Hermes 诊断，不要默认改走 OpenClaw support-inbox cron。
 ---
 
-# Cloud Agent Ops
+# 云端 Agent 诊断
 
 ## 目标
 

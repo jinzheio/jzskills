@@ -1,5 +1,5 @@
 ---
-name: setup-site-analytics
+name: jz-setup-site-analytics
 version: "1.1.0"
 description: "当公开站点已经在最终自定义域名上线，且用户要求接入 analytics、baseline metrics、Search Console、sitemap submission、IndexNow、Bing Webmaster Tools 或 Clarity 时使用。触发语包括 set up GSC、connect analytics、do indexing onboarding、域名好了，接搜索和统计。不要用于初始部署或 DNS cutover；先用 create-site 或 launch-domain。"
 ---

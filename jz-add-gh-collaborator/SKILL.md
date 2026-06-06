@@ -1,10 +1,10 @@
 ---
-name: add-gh-collaborator
+name: jz-add-gh-collaborator
 version: "1.1.1"
 description: "当用户在本地/admin 侧要求为 OpenClaw、Hermes 或 cloud agent 增加 GitHub agent 合作者时使用。未提供 agent 账号时，直接使用本机未跟踪配置中的默认 owner 与 agent GitHub 账号；也支持用户临时指定账号。只设置 GitHub 权限边界：agent fork 可写、upstream 只读。不要用于 Vercel、Neon、服务器 clone、运行时登录、push、preview 或 PR 实作。"
 ---
 
-# Add Cloud Agent Collaborator
+# GitHub Agent 协作者
 
 用于在让 OpenClaw、Hermes 或其它 cloud agent 参与仓库开发前，增加 GitHub agent 合作者并准备权限边界。
 

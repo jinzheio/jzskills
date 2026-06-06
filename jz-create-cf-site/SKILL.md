@@ -1,5 +1,5 @@
 ---
-name: create-cf-site
+name: jz-create-cf-site
 version: "1.0.0"
 description: "当用户想把本地网站或 Web app 完整发布到 Cloudflare 时使用，包括 deploy this site to Cloudflare、publish this local app on Cloudflare、wrangler deploy、create a GitHub repo and deploy to Cloudflare Workers、上线到 Cloudflare。支持 GitHub 不能关联 Cloudflare 时通过 Wrangler 直接发布。默认使用 Cloudflare 一级支持技术栈：Workers、Workers Static Assets、Wrangler、Workers Builds、Cloudflare 官方框架适配器和 Cloudflare 原生数据/存储产品。不要用于从 Vercel 迁移生产流量；迁移用 migrate-to-cf。不要处理正式域名 cutover 或搜索/统计 onboarding；这些作为后续 handoff。"
 ---
