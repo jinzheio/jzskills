@@ -20,6 +20,8 @@
 | `jz-audit-vercel-cost` | 解释 Vercel usage、billed cost、Pro 固定费和信用卡扣款差异。 |
 | `jz-audit-cf-cost` | 读取 Cloudflare 账单和 GraphQL usage，检查当前计费周期运行中资源的按量费用，识别异常计费。 |
 | `jz-build-personal-context` | 通过访谈生成个人上下文和写作风格文件，供 Codex、ChatGPT、Claude、Claude Code 使用。 |
+| `jz-fetch-x` | 按 username 或 userId 抓取指定数量的最新 X 帖子，并保存为 JSON 或 Markdown。 |
+| `jz-pack-source` | 把当前源码树（排除构建产物、密钥）打包成 zip，便于发给合作者或 review agent。 |
 
 新网站的推荐顺序：
 
@@ -51,6 +53,8 @@ git clone https://github.com/<owner>/<repo>.git
 
 然后把需要的 skills 复制或软链接到你的 agent/runner 支持的 skills 目录。
 
+根目录下的 skill 是面向开发的（部署、代码审查、计费、打包等）。`content/` 下的 skill 是内容与自媒体相关的（社交媒体、博客、微信公众号）。两者都遵循相同的 `SKILL.md` 规范，子目录仅用于组织管理。
+
 Codex 示例：
 
 ```bash
@@ -65,6 +69,8 @@ cp -R jz-push-code ~/.codex/skills/
 cp -R jz-audit-vercel-cost ~/.codex/skills/
 cp -R jz-audit-cf-cost ~/.codex/skills/
 cp -R jz-build-personal-context ~/.codex/skills/
+cp -R jz-pack-source ~/.codex/skills/
+cp -R content/jz-fetch-x ~/.codex/skills/
 ```
 
 如果 runner 能直接读取这个仓库，不需要复制。
@@ -115,6 +121,14 @@ cp -R jz-build-personal-context ~/.codex/skills/
 使用 $jz-build-personal-context 通过访谈在 ~/Projects/aboutme 生成 about.md、voice.md、anti-style.md，并用 -g 接入四个入口。
 ```
 
+```text
+使用 $jz-fetch-x 抓取 @mercor_ai 最近 100 条 X 帖子，并保存为 Markdown 和 JSON。
+```
+
+```text
+使用 $jz-pack-source 把当前源码树打包成 zip 发给 review agent。
+```
+
 ## 配置
 
 这些 skills 会根据任务使用已登录的 CLI、API token、浏览器会话或环境变量。
@@ -140,6 +154,8 @@ cp .env.example .env
 | `jz-push-code` | 已提交的干净分支和远端 push 权限 | 只有公开站点 URL 同步需要 IndexNow/Search Console 凭证 |
 | `jz-audit-vercel-cost` | Vercel CLI 登录，并有目标 team/project usage 权限 | receipt 日期、billing cycle day、平台费覆盖值 |
 | `jz-audit-cf-cost` | Cloudflare API Token（Account: Analytics: Read），`CLOUDFLARE_ACCOUNT_ID` | 可选依赖已部署的每小时成本监控（`jinzheceo`） |
+| `jz-fetch-x` | Twittr X API 的 RapidAPI key | 可选的 skill 目录本地 `.env` 回退 |
+| `jz-pack-source` | 待打包的 Git 仓库 | 无 |
 
 常用变量：
 

@@ -20,6 +20,8 @@ This repository is a public skill pack. Each skill folder lives at the repositor
 | `jz-audit-vercel-cost` | Explain Vercel usage, billed cost, Pro fees, and receipt/card charge differences. |
 | `jz-audit-cf-cost` | Read Cloudflare bills and GraphQL usage, check running resource costs in the current billing cycle, and identify billing anomalies. |
 | `jz-build-personal-context` | Interview the user to create persistent profile and writing-style files for Codex, ChatGPT, Claude, and Claude Code. |
+| `jz-fetch-x` | Fetch the latest X posts for a given username or userId and save them as JSON or Markdown. |
+| `jz-pack-source` | Package the current source tree (no build artifacts, no secrets) into a zip for sharing with collaborators or a review agent. |
 
 Recommended sequence for a new site:
 
@@ -51,6 +53,8 @@ git clone https://github.com/<owner>/<repo>.git
 
 Then copy or symlink the skills you want into the skills directory supported by your agent or runner.
 
+Skill directories at the repository root are developer-facing skills (deployment, code review, billing, packaging, etc.). Skills under `content/` are content & marketing skills (social media, blogging, WeChat). Both are valid skills and follow the same `SKILL.md` convention; the subdirectory is for organization only.
+
 Codex example:
 
 ```bash
@@ -65,6 +69,8 @@ cp -R jz-push-code ~/.codex/skills/
 cp -R jz-audit-vercel-cost ~/.codex/skills/
 cp -R jz-audit-cf-cost ~/.codex/skills/
 cp -R jz-build-personal-context ~/.codex/skills/
+cp -R jz-pack-source ~/.codex/skills/
+cp -R content/jz-fetch-x ~/.codex/skills/
 ```
 
 If your runner can read this repository directly, no copy step is needed.
@@ -115,6 +121,14 @@ Use $jz-audit-cf-cost to check running resource costs in the current Cloudflare 
 Use $jz-build-personal-context to interview me, create about.md, voice.md, anti-style.md in ~/Projects/aboutme, and enable all targets with -g.
 ```
 
+```text
+Use $jz-fetch-x to fetch the latest 100 X posts for @mercor_ai and save them as Markdown and JSON.
+```
+
+```text
+Use $jz-pack-source to package the source tree into a zip for review.
+```
+
 ## Configuration
 
 The skills use authenticated CLIs, API tokens, browser sessions, or environment variables depending on the task.
@@ -140,6 +154,8 @@ Prepare only the credentials needed for the skills you run.
 | `jz-push-code` | Clean committed branch and remote push access | IndexNow/Search Console credentials only for public site URL sync |
 | `jz-audit-vercel-cost` | Vercel CLI auth and access to the relevant team/project usage | Receipt date, billing cycle day, platform fee override |
 | `jz-audit-cf-cost` | Cloudflare API Token (Account: Analytics: Read), `CLOUDFLARE_ACCOUNT_ID` | Optional hourly cost monitor (jinzheceo) |
+| `jz-fetch-x` | RapidAPI key for the Twittr X API | Optional local `.env` fallback inside the skill directory |
+| `jz-pack-source` | A git repository to package | None |
 
 Common variables:
 
