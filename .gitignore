@@ -12,6 +12,7 @@ data/
 .claude/settings.local.json
 .claude/**/*.local.*
 
+.cache/
 node_modules/
 dist/
 build/

@@ -1,0 +1,67 @@
+{
+  "evals": [
+    {
+      "id": "trigger-zip-code",
+      "description": "Triggers when user asks to package source code as a zip.",
+      "should_trigger": true,
+      "prompts": [
+        "把当前代码打包成 zip 给我",
+        "把仓库打成 zip",
+        "打包源码给我",
+        "zip up the source code",
+        "把项目代码打包发我",
+        "帮我打一个源码包"
+      ]
+    },
+    {
+      "id": "trigger-send-code",
+      "description": "Triggers when user wants to share or send the codebase as a file.",
+      "should_trigger": true,
+      "prompts": [
+        "把当前项目发我",
+        "把代码发我",
+        "怎么把代码发给别人",
+        "想把这个项目分享出去"
+      ]
+    },
+    {
+      "id": "trigger-exclude-artifact",
+      "description": "Triggers when user asks to package only the source, not build artifacts.",
+      "should_trigger": true,
+      "prompts": [
+        "打包时排除 node_modules",
+        "把源代码打包，不要构建产物",
+        "pack the source without build artifacts"
+      ]
+    },
+    {
+      "id": "no-trigger-push",
+      "description": "Does NOT trigger on push/deploy requests — those are jz-push-code's job.",
+      "should_trigger": false,
+      "prompts": [
+        "把代码推到 GitHub",
+        "部署到 Vercel",
+        "push this to remote"
+      ]
+    },
+    {
+      "id": "no-trigger-commit",
+      "description": "Does NOT trigger on commit requests — those are jz-commit-code's job.",
+      "should_trigger": false,
+      "prompts": [
+        "提交这些变更",
+        "commit these changes",
+        "review and commit"
+      ]
+    },
+    {
+      "id": "no-trigger-tar",
+      "description": "Does NOT trigger on tarball or other archive formats unless user specifically asks for zip.",
+      "should_trigger": false,
+      "prompts": [
+        "打个 tar.gz 给我",
+        "make a tarball"
+      ]
+    }
+  ]
+}
