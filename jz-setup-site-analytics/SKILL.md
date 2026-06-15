@@ -34,6 +34,43 @@ description: "当公开站点已经在最终自定义域名上线，且用户要
 
 某个集成缺少凭据时，只阻塞该集成；继续处理其它集成，并在最后报告 skipped / blocked。
 
+## 凭据
+
+启动时从以下位置加载环境变量（先找到的优先）：
+
+1. `~/.config/skills/jz-setup-site-analytics/.env` — 本机凭据（已 `.gitignore`）
+2. skill 根目录 `.env` — 技能包内凭据
+
+### Umami
+
+- `UMAMI_BASE_URL` — Umami 地址（接受 origin 或 API base）
+- `UMAMI_ADMIN_USERNAME` / `UMAMI_ADMIN_PASSWORD` — admin 登录凭据
+- `UMAMI_SCRIPT_URL`（可选）— 前端脚本地址
+- `UMAMI_API_KEY`（可选）— Umami Cloud fallback
+
+### Google Search Console / Site Verification
+
+- Google OAuth / ADC 已认证会话（`gcloud auth application-default login`）
+- `GCP_QUOTA_PROJECT` — 已启用 Search Console + Site Verification API 的 GCP 项目
+
+### Cloudflare（DNS TXT 验证记录）
+
+- `CLOUDFLARE_ACCOUNT_ID`
+- `CLOUDFLARE_API_TOKEN` — 需 DNS 写权限（与 `jz-create-cf-token` 共享）
+
+### Bing Webmaster Tools
+
+- `BING_WEBMASTER_API_KEY` — 站点验证和 sitemap 提交
+
+### Microsoft Clarity
+
+- `CLARITY_ID` — Clarity project id（public）
+- `CLARITY_TOKEN` — Data Export API token（不要打印或提交到前端）
+
+### 站点集成映射（可选）
+
+- `SITE_INTEGRATIONS_CONFIG` — 域名到仓库和集成元数据的 JSON 映射文件路径
+
 ## 输入
 
 - 必填：最终公开域名，例如 `example.com`

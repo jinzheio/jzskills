@@ -1,6 +1,6 @@
 ---
 name: jz-check-cloud-agent
-description: 诊断和运维云端 agent 部署。登录服务器检查 OpenClaw agent 和 Hermes agent 的运行状态，排查 Telegram 消息异常、cron job 故障、Codex OAuth 过期、home channel 丢失、support 邮件接收，并通过 SSH 隧道打开远程 Chrome 桌面。触发词包括：agent 不工作、agent 没回复、hermes agent、codex 用量、fallback、cron job 失败、Codex OAuth、home channel、gateway、打开远程桌面、远程 Chrome、noVNC、support 邮箱、客户邮件、clawsimplesupport 群。当问题涉及 Hermes agent 处理邮件或群内回复时，优先按 Hermes 诊断，不要默认改走 OpenClaw support-inbox cron。
+description: 诊断和运维云端 agent 部署。登录服务器检查 OpenClaw agent 和 Hermes agent 的运行状态，排查 Telegram 消息异常、cron job 故障、Codex OAuth 过期、home channel 丢失、support 邮件接收，并通过 SSH 隧道打开远程 Chrome 桌面。触发词包括：agent 不工作、agent 没回复、hermes agent、codex 用量、fallback、cron job 失败、Codex OAuth、home channel、gateway、打开远程桌面、打开 agent 远程桌面、远程 Chrome、noVNC、support 邮箱、客户邮件、clawsimplesupport 群。当问题涉及 Hermes agent 处理邮件或群内回复时，优先按 Hermes 诊断，不要默认改走 OpenClaw support-inbox cron。
 ---
 
 # 云端 Agent 诊断
@@ -197,6 +197,7 @@ cfg = load_config()
 - `codex 用量`
 - `fallback`
 - `打开远程桌面`
+- `打开 agent 远程桌面`
 - `打开远程 Chrome`
 - `noVNC`
 
@@ -262,7 +263,7 @@ ssh -o BatchMode=yes -o StrictHostKeyChecking=no \
 
 ### 2.1 打开远程桌面
 
-仅当用户要求打开远程桌面、远程 Chrome 或 noVNC 时，读取
+仅当用户要求打开远程桌面、打开 agent 远程桌面、远程 Chrome 或 noVNC 时，读取
 [`references/open-remote-desktop.md`](references/open-remote-desktop.md)。
 
 先确认远端 noVNC 只监听 loopback，再建立 SSH 隧道。不要把远端 `6080` 端口开放到公网。

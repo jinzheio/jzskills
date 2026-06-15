@@ -22,6 +22,8 @@
 | `jz-build-personal-context` | 通过访谈生成个人上下文和写作风格文件，供 Codex、ChatGPT、Claude、Claude Code 使用。 |
 | `jz-fetch-x` | 按 username 或 userId 抓取指定数量的最新 X 帖子，并保存为 JSON 或 Markdown。 |
 | `jz-pack-source` | 把当前源码树（排除构建产物、密钥）打包成 zip，便于发给合作者或 review agent。 |
+| `jz-track-conversion` | 为网站设计和实现转化漏斗事件埋点，包含事件命名规范、6 种实现模式、跨页面状态管理和归因追踪。 |
+| `jz-make-viral` | 综合 32 条 viral product 原则 + 5 条 landing page 设计规律，分话题路由：landing page 设计、文案、定价、产品定位、视觉品牌。 |
 
 新网站的推荐顺序：
 

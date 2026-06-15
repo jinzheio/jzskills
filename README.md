@@ -22,6 +22,8 @@ This repository is a public skill pack. Each skill folder lives at the repositor
 | `jz-build-personal-context` | Interview the user to create persistent profile and writing-style files for Codex, ChatGPT, Claude, and Claude Code. |
 | `jz-fetch-x` | Fetch the latest X posts for a given username or userId and save them as JSON or Markdown. |
 | `jz-pack-source` | Package the current source tree (no build artifacts, no secrets) into a zip for sharing with collaborators or a review agent. |
+| `jz-track-conversion` | Design and implement conversion funnel event tracking with naming conventions, 6 implementation patterns, cross-page state management, and attribution tracking. |
+| `jz-make-viral` | 32 viral product principles + 5 landing page design laws, topic-routed: landing page design, copywriting, pricing, product positioning, visual branding. |
 
 Recommended sequence for a new site:
 

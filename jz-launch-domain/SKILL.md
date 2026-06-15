@@ -140,3 +140,4 @@ description: "当用户已有可用部署、想连接自定义域名时使用，
 
 - 邮件转发：`references/email-routing.md`
 - 验证清单：`references/validation-checklist.md`
+- **Spaceship Registrar**：当域名注册商是 Spaceship 时，通过 API 修改 nameserver 的流程见 `references/spaceship-api.md`
