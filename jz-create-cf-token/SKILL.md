@@ -50,18 +50,33 @@ Never replace a project token with the shared bootstrap token.
 
 ### Step 3: Read bootstrap credentials only if needed
 
-Read this skill's local config first. The config points to the bootstrap credential env file and names the variables to read.
+The config points to the bootstrap credential env file and names the variables to read. Look in **both** of these locations (first match wins):
 
-When using the script template below, resolve this skill's local config path in the caller/runtime and pass it through `CF_TOKEN_SKILL_CONFIG`.
+1. `~/.config/skills/jz-create-cf-token/config.toml`
+2. `<skill-dir>/config.toml`
 
-Read the configured account id and bootstrap token only when the project has no usable token, or when the existing project token needs a permission update. If the config file, env file, or variables are missing, ask the user for the missing config or values directly.
+If neither exists, ask the user for the missing config or values.
 
-Use this function to extract values:
+Config schema is tracked in `config.example.toml`. Copy that shape to a `config.toml` at the preferred location, then set `env_file` to the local bootstrap env file. Do **not** commit `config.toml` or the bootstrap env — both paths above are outside the skill's git repo by default.
+
+When calling the Python script, resolve the config path with the same two-location order and pass it via `CF_TOKEN_SKILL_CONFIG`. Example resolution logic:
+
+```bash
+if [ -f "$HOME/.config/skills/jz-create-cf-token/config.toml" ]; then
+    export CF_TOKEN_SKILL_CONFIG="$HOME/.config/skills/jz-create-cf-token/config.toml"
+elif [ -f "<skill-dir>/config.toml" ]; then
+    export CF_TOKEN_SKILL_CONFIG="<skill-dir>/config.toml"
+else
+    echo "No jz-create-cf-token config.toml found" >&2 && exit 1
+fi
+```
+
+Read the configured account id and bootstrap token only when the project has no usable token, or when the existing project token needs a permission update. If the config file, env file, or variables are missing after checking both locations, ask the user directly.
+
+Use this function to extract values from env files:
 ```bash
 get_env() { awk -F= -v k="$1" '$1==k {sub(/^[^=]*=/, ""); gsub(/^"|"$/, ""); print; exit}' "$2"; }
 ```
-
-Config schema is tracked in `config.example.toml`. Copy that shape into the local config used by this skill, then set `env_file` to the local bootstrap env file. Do not commit the local config or bootstrap env.
 
 The bootstrap env file must define the variables named by `account_id_var` and `token_var`.
 
@@ -116,10 +131,20 @@ def get_env(key, path):
     return r.stdout.strip()
 
 config_path = os.environ.get("CF_TOKEN_SKILL_CONFIG")
-if not config_path:
-    raise SystemExit("CF_TOKEN_SKILL_CONFIG is required")
+if config_path:
+    config_path = os.path.expanduser(config_path)
+else:
+    # Two-location lookup: ~/.config/skills first, then skill dir
+    home_config = os.path.expanduser("~/.config/skills/jz-create-cf-token/config.toml")
+    skill_dir_config = os.path.join(os.path.dirname(__file__), "config.toml")
+    if os.path.exists(home_config):
+        config_path = home_config
+    elif os.path.exists(skill_dir_config):
+        config_path = skill_dir_config
+    else:
+        raise SystemExit("No jz-create-cf-token config.toml found at ~/.config/skills/jz-create-cf-token/ or skill directory")
 
-with open(os.path.expanduser(config_path), "rb") as f:
+with open(config_path, "rb") as f:
     config = tomllib.load(f)
 
 bootstrap = config["bootstrap"]
