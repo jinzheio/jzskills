@@ -29,7 +29,7 @@ worker subagent 的初始任务必须包含：
 保持脏工作区现状，不要还原用户变更。
 先请求确认，等待用户明确确认后再 lint、build、提交或 push。
 推送前确保目标变更已提交、适用检查通过、工作区干净。
-如果是 Cloudflare 公开站点，推送前先确认 GitHub Actions 自动部署 workflow 存在；没有则读取 references/cloudflare-auto-deploy.md 并补齐。缺少 Cloudflare GitHub secrets 时，先找当前项目 `.dev.vars` / `.env.local` 里的项目最小权限 token；没有或权限不足时，再通过 `create-cf-token` 本地配置读取共享 `CLOUDFLARE_ACCOUNT_ID` 和具备 Account API Tokens Write 权限的 bootstrap token，为当前项目创建专属最小权限 token，或给已有项目 token 增加必要权限，再写入 GitHub Secrets；只有共享凭据不可用、无法创建或更新项目 token、或权限验证失败时，才使用本机 `infra-credential-lookup` skill 继续查找。不要在 push 后询问本地 wrangler 发布。
+如果是 Cloudflare 公开站点，推送前先确认 GitHub Actions 自动部署 workflow 存在；没有则读取 references/cloudflare-auto-deploy.md 并补齐。缺少 Cloudflare GitHub secrets 时，先找当前项目 `.dev.vars` / `.env.local` 里的项目最小权限 token；没有或权限不足时，再通过 `jz-create-cf-token` 本地配置读取共享 `CLOUDFLARE_ACCOUNT_ID` 和具备 Account API Tokens Write 权限的 bootstrap token，为当前项目创建专属最小权限 token，或给已有项目 token 增加必要权限，再写入 GitHub Secrets；只有共享凭据不可用、无法创建或更新项目 token、或权限验证失败时，才使用本机 `infra-credential-lookup` skill 继续查找。不要在 push 后询问本地 wrangler 发布。
 本次 push 的 commit range 中任一 commit message 包含 `[skip deploy]` 时跳过自动部署，也不要执行 IndexNow 提交。
 公开站点的公开页面改动按 references/post-push-indexing.md 执行 post-deploy IndexNow；Cloudflare 站点必须在 GitHub Actions 部署完成并验证后再提交 IndexNow。不适用时说明原因。
 完成后报告验证、push、Cloudflare 发布、IndexNow 和 Search Console 结果。
@@ -95,7 +95,7 @@ Cloudflare 托管条件，满足任一项：
 如果 Cloudflare 自动部署所需的 GitHub secrets 缺失，先按 `references/cloudflare-auto-deploy.md` 的凭据约定处理：
 
 - 先从当前项目 `.dev.vars`、`.env.local` 或其它本地 env 读取项目专属最小权限 `CLOUDFLARE_API_TOKEN` 和 `CLOUDFLARE_ACCOUNT_ID`。
-- 如果项目 token 缺失或权限不足，通过 `create-cf-token` 本地配置读取共享 `CLOUDFLARE_ACCOUNT_ID` 和具备 Account API Tokens Write 权限的 bootstrap token。
+- 如果项目 token 缺失或权限不足，通过 `jz-create-cf-token` 本地配置读取共享 `CLOUDFLARE_ACCOUNT_ID` 和具备 Account API Tokens Write 权限的 bootstrap token。
 - 用 bootstrap token 创建当前项目专属的最小权限 `CLOUDFLARE_API_TOKEN`，或给已有项目 token 增加必要权限。
 - 把项目 token 写入当前项目 `.dev.vars` 和 GitHub Secrets。
 
