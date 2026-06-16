@@ -1,7 +1,7 @@
 ---
 name: jz-commit-code
-version: "1.2.0"
-description: "当用户要求 review 并提交本地工作区变更时使用，包括 commit this、帮我 commit、确认提交、split these changes into commits。必须优先分派 subagent 在独立 context window 中执行 review 与提交流程。先 review diff 并报告风险，等待用户明确确认，再按功能创建干净的 scoped commits。除非用户同时要求 push，否则不要推送。"
+version: "1.3.0"
+description: "当用户要求 review 并提交本地工作区变更时使用，包括 commit this、帮我 commit、确认提交、split these changes into commits。必须优先分派 subagent 在独立 context window 中执行 review 与提交流程。先 review diff 并报告风险，等待用户明确确认，再按功能创建干净的 scoped commits。除非用户同时要求 push，否则不要推送。当带有 force 参数时（如 commit-code force），跳过确认，自动 review 后直接按功能拆分提交。"
 ---
 
 # 代码 Review 与提交
@@ -27,14 +27,25 @@ subagent 的初始任务必须包含：
 你在 /absolute/path/to/repo 中执行 commit-code skill。
 先阅读仓库内 AGENTS.md 和 commit-code/SKILL.md。
 保持脏工作区现状，不要还原用户变更。
-先 review 工作区 diff 并返回报告，等待用户明确确认后再提交。
+[CONFIRMATION_MODE]。
 除非用户同时要求 push，否则不要 push。
 完成后报告 commit hash、分组和剩余未提交变更。
 ```
 
+父 agent 负责将上述 `[CONFIRMATION_MODE]` 替换为：
+- force 模式（用户请求包含 `force`）：`"跳过所有确认。先 review 工作区 diff 并输出报告，然后直接按功能拆分提交。不要询问用户确认。"`
+- 正常模式：`"先 review 工作区 diff 并返回报告，等待用户明确确认后再提交。"`
+
 如果当前环境不支持分派 subagent，才在父 agent 当前 context 中直接执行本流程，并在汇报中说明已降级为本地执行。
 
 ## 步骤
+
+### 0. Force 模式
+
+当用户请求包含 `force` 时（如 `commit-code force`、`commit this force`），启用 force 模式：
+
+- 跳过步骤 2 中的用户确认环节。仍然执行步骤 1（review 工作区 diff 并输出报告），但 review 完成后直接进入步骤 3（规划 commit 分组）和步骤 4（逐组提交），不等待用户回复。
+- 其余流程与正常模式一致。
 
 ### 1. 分析工作区变更
 

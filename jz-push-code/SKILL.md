@@ -1,7 +1,7 @@
 ---
 name: jz-push-code
-version: "1.4.2"
-description: "当用户要求验证并推送仓库时使用，包括 push this、发布代码、推送到远端。必须优先分派 worker subagent 在独立 context window 中执行验证、提交和推送流程。运行适用检查，确保目标变更已提交，然后 push。Cloudflare 公开站点优先使用 GitHub Actions 自动部署；只有缺 workflow 时才读取自动部署 reference 并补齐。用 [skip deploy] 跳过部署。部署完成后再执行 IndexNow。后端仓库、私有工具、API-only 改动或没有公开 URL 的改动不要运行 IndexNow。"
+version: "1.5.0"
+description: "当用户要求验证并推送仓库时使用，包括 push this、发布代码、推送到远端。必须优先分派 worker subagent 在独立 context window 中执行验证、提交和推送流程。运行适用检查，确保目标变更已提交，然后 push。Cloudflare 公开站点优先使用 GitHub Actions 自动部署；只有缺 workflow 时才读取自动部署 reference 并补齐。用 [skip deploy] 跳过部署。部署完成后再执行 IndexNow。后端仓库、私有工具、API-only 改动或没有公开 URL 的改动不要运行 IndexNow。当带有 force 参数时（如 push-code force），跳过所有确认，自动按功能拆分提交并直接 push。"
 ---
 
 # 验证并推送代码
@@ -27,7 +27,7 @@ worker subagent 的初始任务必须包含：
 你在 /absolute/path/to/repo 中执行 push-code skill。
 先阅读仓库内 AGENTS.md 和 push-code/SKILL.md。
 保持脏工作区现状，不要还原用户变更。
-先请求确认，等待用户明确确认后再 lint、build、提交或 push。
+[CONFIRMATION_MODE]。
 推送前确保目标变更已提交、适用检查通过、工作区干净。
 如果是 Cloudflare 公开站点，推送前先确认 GitHub Actions 自动部署 workflow 存在；没有则读取 references/cloudflare-auto-deploy.md 并补齐。缺少 Cloudflare GitHub secrets 时，先找当前项目 `.dev.vars` / `.env.local` 里的项目最小权限 token；没有或权限不足时，再通过 `jz-create-cf-token` 本地配置读取共享 `CLOUDFLARE_ACCOUNT_ID` 和具备 Account API Tokens Write 权限的 bootstrap token，为当前项目创建专属最小权限 token，或给已有项目 token 增加必要权限，再写入 GitHub Secrets；只有共享凭据不可用、无法创建或更新项目 token、或权限验证失败时，才使用本机 `infra-credential-lookup` skill 继续查找。不要在 push 后询问本地 wrangler 发布。
 本次 push 的 commit range 中任一 commit message 包含 `[skip deploy]` 时跳过自动部署，也不要执行 IndexNow 提交。
@@ -35,15 +35,29 @@ worker subagent 的初始任务必须包含：
 完成后报告验证、push、Cloudflare 发布、IndexNow 和 Search Console 结果。
 ```
 
+父 agent 负责将上述 `[CONFIRMATION_MODE]` 替换为：
+- force 模式（用户请求包含 `force`）：`"跳过所有确认。如果工作区有未提交变更，先自动按功能拆分并提交（参考 commit-code skill 的分组逻辑），然后直接验证并 push。不要询问用户确认。"`
+- 正常模式：`"先请求确认，等待用户明确确认后再 lint、build、提交或 push。"`
+
 如果当前环境没有 subagent 工具，才在父 agent 当前 context 中执行本流程，并在汇报中说明已降级为本地执行。
 
 ## 步骤
 
+### 0. Force 模式
+
+当用户请求包含 `force` 时（如 `push-code force`、`push this force`），启用 force 模式：
+
+- 跳过步骤 1（请求确认），直接进入步骤 2。
+- 如果工作区有未提交变更，先自动按功能拆分并提交（参考 commit-code skill 的分组逻辑：同一功能的文件放同一个 commit，untracked 文件放入归属功能的 commit，使用 Conventional Commits），然后再验证并 push。不要询问用户确认。
+- 其余流程与正常模式一致。
+
 ### 1. 请求确认
+
+**Force 模式下跳过此步骤。**
 
 执行任何动作前，必须询问：
 
-**“是否确认继续 lint、build 并推送代码？”**
+**”是否确认继续 lint、build 并推送代码？”**
 
 必须等用户明确确认后继续。
 
