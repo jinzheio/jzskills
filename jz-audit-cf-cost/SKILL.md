@@ -1,148 +1,259 @@
 ---
 name: jz-audit-cf-cost
-version: "1.0.0"
-description: "当需要读取、解释或核对 Cloudflare 账单、usage、计费周期费用、运行中资源成本时使用。适用于查 Cloudflare Dashboard Billable Usage、用 GraphQL Analytics API 查当前计费周期用量、评估 Durable Objects/Workers/D1/R2/KV/Queues 等付费资源的成本、发现异常计费。"
+description: "当需要在某个 Cloudflare Workers/Pages 项目中读取、解释或核对 Cloudflare 账单、usage、计费周期费用、运行中资源成本时使用。适用于从当前项目的 wrangler 配置、package.json、源码引用、.dev.vars 或 .env 认证字段识别资源，并用 Cloudflare GraphQL schema/probe、PayGo usage、手工 quota 输入或本地估算核对 Durable Objects/Workers/D1/R2/KV/Queues/Images/Workers AI 等付费资源和异常计费。"
 ---
 
 # Cloudflare 账单核算
 
-用于把 Cloudflare usage 数据解释成可核对的数字，发现当前计费周期运行中资源的意外费用。
+用于在具体项目目录里核对 Cloudflare 当前账期用量，找出已经产生或可能产生费用的资源。
 
-## 核心口径
+## 默认口径
 
-Cloudflare 不同产品按不同计费单位收费。不要用"请求数"或"bandwidth"统一估算。
+- 默认从当前工作目录开始向上查找项目根；用户指定项目路径时再传 `--project <repo-root>`。
+- 默认读取项目根目录的 `.dev.vars`、`.env`、`.env.local` 里的 Cloudflare 凭据，再回退到进程环境变量；Account ID 也可以从 Wrangler 配置的 `account_id` 读取。
+- 用户没有指定日期时，默认查当前计费周期。
+- PayGo usage API 不传 `from` / `to`，让 Cloudflare 返回当前 billing period。
+- GraphQL Analytics API 没有统一的账期端点。脚本只做 schema discovery 和 dataset probe，默认用 UTC 当月 1 日到明天作为 analytics window；报告时说明它不是 invoice 口径。
+- GraphQL probe 用来确认哪些 dataset 当前账号可查；PayGo usage、手工 quota 输入或用户提供的 Dashboard Billable Usage 数字用来对账。
+- API 返回 raw usage 或只返回 dataset 可查性时，不要把它解释成完整账单；只报告数据能支撑的结论。
 
-| 产品 | 计费单位 | 容易放大的路径 |
-|---|---|---|
-| Durable Objects | duration (GB-s)、requests、storage | `server.accept()` 让对象不能 hibernate；alarm 循环；storage 写入在循环里 |
-| Workers / Pages Functions | requests、CPU time (ms) | SSR 把页面请求变 Worker invocation；无鉴权 endpoint 被爬虫打 |
-| D1 | rows read、rows written、storage | 无索引全表扫描；查询扫大量行但只返回少量结果 |
-| R2 | storage (GB-month)、Class A ops、Class B ops | 公开文件无 cache；频繁 list/put；误选 Infrequent Access |
-| KV | read/write/delete/list ops | 每请求多次读 KV；用 list 做搜索 |
-| Queues | operations | consumer 一直失败反复 retry；producer 无限写入 |
-| Workers AI | tokens / units（按模型不同） | endpoint 无鉴权；循环调用 |
-| Images | transformations、stored、delivered | 用户输入导致大量 unique transforms；公开 endpoint 无缓存 |
-| Browser Rendering | session duration | 批量页面抓取 |
-| Cache Reserve | storage、read/write ops | 大文件频繁进入和读取 |
-| Stream | storage minutes、delivered minutes | 测试时反复上传；公开播放页无爬虫控制 |
+## 执行流程
 
-核账时的关键公式（按产品分别计算）：
+### 1. 识别资源
 
-```text
-estimated cost = billable usage × rate
-monthly projection ≈ (当月用量 / 当月已过天数) × 当月总天数
-```
-
-注意：
-- 不同产品免费额度不同（daily vs monthly，per account vs per plan）
-- 部分产品有最低计费单位（如 R2 Infrequent Access 有最小存储计费）
-- DO duration 的 GB-s 按 `wall-clock 秒 × 0.125 GB (128 MB)` 计算
-- DO 的 Workers Paid plan 有 400,000 GB-s / month 免费额度
-
-## Workflow
-
-### 1. 确认要查的范围
-
-- 用户要查的月份或日期范围
-- 是否有特定 receipt 或扣款需要核对
-- 当前计费周期到今天已消耗多少
-
-### 2. 识别涉及的资源
-
-先看当前仓库 `wrangler.toml` / `wrangler.json` / `wrangler.jsonc` 里的 bindings 和 resources。确认每个资源的计费单位和免费额度。
-
-### 3. 收集用量数据
-
-按优先级尝试：
-
-1. 如果用户已有成本监控脚本或 JSON 输出，先读已有数据
-2. 调 GraphQL Analytics API 获取当前周期细粒度数据
-3. 如果 API 不可用，用 Dashboard Billing 页的 Billable Usage 数字（标注为估算值）
-4. 以上都不可用时，根据已知配置和运行时长手动估算（标注为估算值）
-
-GraphQL API 调用示例 — 查 Durable Objects daily duration：
+先运行脚本读取项目配置和代码引用：
 
 ```bash
-curl -s -X POST \
-  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  "https://api.cloudflare.com/client/v4/graphql" \
-  -d '{
-    "query": "query ($accountTag: String, $filter: AccountDurableObjectsPeriodicGroupsFilter_InputObject) {
-      viewer {
-        accounts(filter: { accountTag: $accountTag }) {
-          durableObjectsPeriodicGroups(filter: $filter, limit: 10000, orderBy: [date_ASC]) {
-            date: dimensions { date }
-            sum { durationGBs }
-          }
-        }
-      }
-    }",
-    "variables": {
-      "accountTag": "'"$CLOUDFLARE_ACCOUNT_ID"'",
-      "filter": { "date_geq": "2026-06-01", "date_lt": "2026-07-01" }
-    }
-  }'
+node <skill-dir>/scripts/audit-cf-usage.mjs \
+  --dry-run
 ```
 
-需要的 API Token 权限：`Account: Analytics: Read`。
+如果不在目标项目目录运行，再传项目路径：
 
-其他常用 dataset：`workersInvocationsAdaptive`、`d1AnalyticsAdaptiveGroups`、`r2OperationsAdaptiveGroups`、`kvOperationsAdaptiveGroups`。
+```bash
+node <skill-dir>/scripts/audit-cf-usage.mjs \
+  --project <repo-root> \
+  --dry-run
+```
 
-GraphQL 注意：
-- `date_geq` / `date_lt` 按 UTC 解释
-- 如果没有设 filter，默认取最近 7 天
-- 部分 dataset 有 1h–24h 延迟
+脚本会读取 `wrangler.toml`、`wrangler.json`、`wrangler.jsonc`，并识别：
 
-### 4. 解释并输出
+- Workers / Pages Functions
+- KV
+- D1
+- R2
+- Durable Objects
+- Queues
+- cron triggers
+- Workers AI binding 或 `env.AI` / `AI.run`
+- Images binding、`/cdn-cgi/image/`、Worker image transforms、外部 `images.*` host 引用
 
-向用户报告每个产品的用量、免费额度、计费用量和预估费用。如果用量接近或超过免费额度，标注 warning 并给出月末预测。
+如果资源只写在 Wrangler 的 `env.<name>` 环境配置里，脚本仍要识别，并在资源上标注 `environment`。
 
-### 5. 异常检测
+如果项目没有 wrangler 配置，但 `package.json` 显示它使用 Cloudflare adapter、Wrangler 或 deploy script，仍按 Workers 项目处理，并标注来源是 `package.json`。
 
-检查以下信号：
+dry-run 也会输出 `riskFindings`。这些不是已确认 bug，而是需要人工确认的成本放大路径：
+
+- Queue consumer 调用自己的公开 API，并把用户侧 `write_mode` / `writeMode` 继续传进去。
+- 同一个 Durable Object 文件里出现多处 `storage.put()`，尤其是状态流转、ack、mirror 写入。
+- API key、auth、legacy fallback 路径里出现 KV `list()`。
+- Wrangler 同时包含 Queues、Durable Objects 和 KV。
+
+### 2. 读取凭据
+
+脚本会按顺序读取：
+
+1. `--env-file <path>` 指定的文件
+2. 项目根目录 `.dev.vars`
+3. 项目根目录 `.env`
+4. 项目根目录 `.env.local`
+5. 当前进程环境变量
+6. Wrangler 配置里的 `account_id`（只用于 Account ID）
+
+支持的字段名：
+
+- Account ID：`CLOUDFLARE_ACCOUNT_ID`、`CF_ACCOUNT_ID`
+- API token：`CLOUDFLARE_API_TOKEN`、`CF_API_TOKEN`
+
+不要在命令行参数里传 API token，避免进入 shell history 或进程列表。报告里也不要输出 token、env 文件路径里的本机绝对路径或账号原值。
+
+资源识别时不要输出 KV namespace id、D1 database_id、account id 这类真实 ID。只说明资源名、binding、环境名和 `idPresent` / `databaseIdPresent`。
+
+### 3. 查 API
+
+有 Cloudflare 凭据时运行：
+
+```bash
+node <skill-dir>/scripts/audit-cf-usage.mjs
+```
+
+需要权限：
+
+- GraphQL Analytics：`Account: Analytics: Read`
+- PayGo usage：该 API 目前是 alpha，可能还需要账号 billing 权限；如果返回 404、403 或 unavailable，不要记成 `$0`
+
+用户指定日期时再传：
+
+```bash
+node <skill-dir>/scripts/audit-cf-usage.mjs \
+  --from 2026-06-01 \
+  --to 2026-06-16
+```
+
+### 4. 覆盖范围
+
+| 项目 | 监控方式 | 备注 |
+|---|---|---|
+| Workers / Pages Functions | GraphQL Workers dataset probe；PayGo / quota rows 对账 | 看 requests、CPU time |
+| KV operations | GraphQL `kvOperationsAdaptiveGroups` probe；quota rows 对账 | 看 read/write/delete/list |
+| KV storage | GraphQL `kvStorageAdaptiveGroups` probe；quota rows 对账 | 估算 GB-month |
+| D1 | GraphQL `d1AnalyticsAdaptiveGroups` / storage dataset probe；quota rows 对账 | 看 rows read、rows written、storage |
+| R2 Class A / B | GraphQL `r2OperationsAdaptiveGroups` probe；quota rows 对账 | 看 Class A / Class B operations |
+| R2 storage | GraphQL `r2StorageAdaptiveGroups` probe；PayGo / quota rows 对账 | R2 按每日 peak storage 平均成 GB-month |
+| Images transform | GraphQL Images 相关 dataset probe；PayGo / quota rows 对账 | 看 unique transformations、stored、delivered |
+| Workers AI | GraphQL Workers AI / AI inference dataset probe；PayGo / quota rows 对账 | 账单口径是 Neurons |
+| Cron Triggers | Workers scheduled event / invocation dataset probe | Cron 本身不是独立计费项，通常落到 Workers requests 和 CPU time |
+| Queues | GraphQL Queues dataset probe；quota rows 对账 | 看 operations；retry 会增加 read operations |
+| Durable Objects | 本地估算、PayGo / quota rows 对账 | 看 duration、requests、storage rows written |
+
+Cloudflare GraphQL schema 会变。实际查询前先用脚本做 schema discovery，确认当前账号里存在的 dataset 和字段。脚本会根据 filter input 字段选择 `date_geq/date_lt` 或 `datetime_geq/datetime_lt`。
+
+### 5. 输出
+
+报告时优先使用脚本输出的 `usageRows`。不要重新解释 raw PayGo JSON，除非 `usageRows` 缺少用户明确要看的字段。
+
+每个 `usageRows[]` 项固定包含这些字段：
+
+| 字段 | 含义 |
+|---|---|
+| `product` | Cloudflare 产品名 |
+| `metric` | 计费或用量指标 |
+| `source` | 数据来源，例如 `manual-quota`、`local-estimate`、`paygo-usage` |
+| `sourceDetail` | 来源细节；只能写相对文件、dataset 或本地估算参数 |
+| `period` | `monthly`、`daily` 或 `null` |
+| `used` / `unit` | 当前用量和单位 |
+| `included` | plan 内额度；未知时为 `null` |
+| `billableUsed` | 扣除额度后的计费用量；未知时为 `null` |
+| `projectedUsed` | 账期末或每日外推用量；未知时为 `null` |
+| `usedPlanRatio` | 已用占 plan 内额度比例；未知时为 `null` |
+| `projectedPlanRatio` | 外推占 plan 内额度比例；未知时为 `null` |
+| `estimatedCostUsd` | 当前估算费用；未知时为 `null` |
+| `projectedCostUsd` | 外推估算费用；未知时为 `null` |
+| `confidence` | `high`、`medium` 或 `low` |
+| `note` | 需要保留的不确定性说明 |
+
+如果输出包含 `datasetProbes`，只把它当作“当前账号 schema 中这个 dataset 可以查询”的证据。它不能替代 `usageRows`，也不能证明费用是 `$0`。
+
+如果输出包含 `riskFindings`，先按 `severity` 从高到低看。高风险项需要读对应源码，确认是否在请求热路径、queue consumer 或 auth fallback 中触发。
+
+报告时只写能支撑判断的数字：
+
+- 查询范围和数据来源
+- 识别到的付费资源
+- 每个产品的用量、plan 内额度、计费用量、预估费用
+- 已用占 plan 内额度比例
+- 外推到当前计费周期结束时，占 plan 内额度比例
+- 当前账期累计费用；如果只能拿到 GraphQL analytics，标注为估算
+- 月末预测
+- 需要立即处理的异常项
+
+结果报告必须包含这两列：
+
+| 字段 | 计算 |
+|---|---|
+| 已用占 plan 内额度比例 | `当前已用量 / plan 内额度` |
+| 账期末外推比例 | `(当前已用量 / 已过账期天数 × 当前账期总天数) / plan 内额度` |
+
+常见计费项都要计算比例，不要只算 Durable Objects。至少覆盖本次项目中识别到的 Workers requests / CPU、KV operations / storage、D1 rows / storage、R2 Class A / Class B / storage、Images transformations、Workers AI、Queues operations 和 Durable Objects duration。
+
+如果额度每天重新计，外推不要用账期累计量。使用最近 3 天平均用量：
 
 ```text
-DO duration 预测 > 免费额度 80%   → warning，检查 DO 数量和 hibernation
-DO duration 预测 > 免费额度       → critical，准备 kill switch
-Workers requests 预测 > 免费额度 80% → warning
-Workers CPU 预测 > 免费额度 80%   → warning
-D1 rows read 突增                 → warning，检查查询计划
-R2 Class B ops 突增              → warning，检查缓存
-当月按量费用预测 > $5             → 建议分析
-当月按量费用预测 > $10            → 立即检查，必要时关停
+每日额度项目的账期末外推比例 = 最近 3 天日均用量 / 每日 plan 内额度
 ```
 
-建议阈值：
-- 当前账期累计按量费用 > $1 时开始关注
-- 当前账期累计按量费用 > $5 时排查
-- 当前账期累计按量费用 > $10 时立即检查
+这类项目的“已用占 plan 内额度比例”使用今天或最近一个完整日的用量除以每日额度。没有日粒度数据时，保留比例列，值写 `未知`，说明缺少最近 3 天日用量。
 
-## DO duration 快速估算
+如果某个产品没有 plan 内额度，或 API 没返回额度，仍保留这两列，值写 `未知`，并说明缺少哪个字段。不要省略。
 
-```text
-1 个 128 MB DO 在线 24 小时 = 86,400s × 0.125GB = 10,800 GB-s/day
-按 paid rate $0.0001/GB-s ≈ $1.08/day/object
+如果某个 API 返回 `Costs not found`、404、403 或 unavailable，只说明不可查，不要写成 `$0`。
 
-5 个全天在线 ≈ 54,000 GB-s/day ≈ $5.40/day
-30 天 × 5 个 ≈ 1,620,000 GB-s，扣除 400,000 GB-s 免费额度 ≈ 1,220,000 GB-s billable
+`paygo-usage` 来源的 `usageRows` 是从 Cloudflare raw response 中保守抽取的行，默认 `confidence` 是 `low`。除非字段名和用户提供的 Dashboard/receipt 数字能对上，不要把它当最终 invoice。
+
+### 6. 额度比例计算
+
+GraphQL 或 PayGo 拿到用量后，用脚本统一计算比例。月度额度示例：
+
+```bash
+node <skill-dir>/scripts/audit-cf-usage.mjs \
+  --quota "product=KV,metric=reads,used=1200000,included=10000000,period=monthly,elapsedDays=15,cycleDays=30,unit=ops" \
+  --dry-run
 ```
 
-## 输出格式
+每日重置额度示例：
 
-报告时按产品逐项列出当前用量、免费额度、计费用量、预估费用和月末预测。
+```bash
+node <skill-dir>/scripts/audit-cf-usage.mjs \
+  --quota "product=KV,metric=reads,used=70000,included=100000,period=daily,last3=60000|70000|80000,unit=ops" \
+  --dry-run
+```
 
-如果只查到 Dashboard 估算值，标注数据来源和精度。如果用户提供了 receipt 或扣款金额，对比并解释差异。
+也可以把多个计费项写入 JSON：
 
-## 与其他流程的关系
+```json
+[
+  {
+    "product": "KV",
+    "metric": "reads",
+    "used": 1200000,
+    "included": 10000000,
+    "period": "monthly",
+    "elapsedDays": 15,
+    "cycleDays": 30,
+    "unit": "ops"
+  },
+  {
+    "product": "Images",
+    "metric": "transformations",
+    "used": 4200,
+    "included": 5000,
+    "period": "monthly",
+    "elapsedDays": 15,
+    "cycleDays": 30,
+    "unit": "unique transformations"
+  },
+  {
+    "product": "Workers",
+    "metric": "requests",
+    "used": 70000,
+    "included": 100000,
+    "period": "daily",
+    "last3": [60000, 70000, 80000],
+    "unit": "requests"
+  }
+]
+```
 
-- **push-code 的 cloudflare-billing-safety.md**：上线前检查本次变更是否新增/修改付费资源。audit-cf-cost 是上线后的事后排查和日常监控，关注"已经产生了多少费用"。
-- **jz-audit-vercel-cost**：同类 skill，处理 Vercel 账单。按云平台区分。
+```bash
+node <skill-dir>/scripts/audit-cf-usage.mjs \
+  --quota-json ./cf-usage-items.json \
+  --dry-run
+```
 
-## 注意
+需要在没有 API 数据时估算 Durable Objects duration，可以使用：
 
-- Dashboard 的 Billable Usage 是估算，不是最终 invoice。如果用户要核 receipt，优先用 GraphQL API。
-- Budget Alerts 只是通知，不会暂停资源或限制用量。不要因为"设了 alert"就觉得安全。
-- DO + WebSocket 默认必须用 `state.acceptWebSocket(server)`（WebSocket Hibernation API），不能用 `server.accept()`。后者会让 DO 在连接期间持续产生 duration 费用，这是最常见的意外账单来源。
-- 新的付费 Worker 上线后 30 分钟内复查 GraphQL usage，确认没有意外的计费单位在增长。
-- 如果 API 返回 `Costs not found` 或 404，说明当前 token/account 对该区间不可查；不要记成 `$0`。
+```bash
+node <skill-dir>/scripts/audit-cf-usage.mjs \
+  --estimate-do \
+  --do-objects 5 \
+  --do-hours-per-day 24 \
+  --do-days 30 \
+  --do-memory-mb 128 \
+  --dry-run
+```
+
+脚本会输出 duration GB-s、扣除免费额度后的 billable GB-s 和估算费用。
+
+## 什么时候读 reference
+
+只有在识别到某个产品已经产生费用、即将产生费用，或用户要求给排查建议时，才读取 `references/cost-advice.md` 的相关段落。不要在正常核账流程里先读建议材料。
