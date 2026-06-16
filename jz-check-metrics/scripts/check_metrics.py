@@ -19,7 +19,12 @@ except ImportError:
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 USER_CONFIG_ENV = Path.home() / ".config" / "skills" / "jz-check-metrics" / ".env"
 SKILL_ENV = SKILL_ROOT / ".env"
-SITE_INTEGRATIONS_PATH = Path.home() / "Projects" / "jinzheceo" / "config" / "site-integrations.json"
+SITE_INTEGRATIONS_PATH = Path(
+    os.environ.get(
+        "SITE_INTEGRATIONS_CONFIG",
+        str(Path.home() / ".config" / "skills" / "jz-check-metrics" / "site-integrations.json"),
+    )
+).expanduser()
 
 
 # --- Env loading ---
