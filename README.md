@@ -2,28 +2,41 @@
 
 English | [中文](README.zh.md)
 
-Reusable agent skills for site launch work, code review and push workflows, and billing analysis.
+Reusable agent skills for one-person company work. Root-level skills focus on development and site-building work. Subdirectories group other topics such as content production and infrastructure operations.
 
-This repository is a public skill pack. Each skill folder lives at the repository root and contains its own `SKILL.md` and optional bundled resources.
+This repository is a public skill pack. Each skill folder contains its own `SKILL.md` and optional bundled resources.
 
-## Skills
+## Root Skills
 
 | Skill | Use it for |
 | --- | --- |
 | `jz-create-site` | Publish a local web project through GitHub and Vercel. |
+| `jz-create-cf-site` | Publish a local web project to Cloudflare Workers. |
+| `jz-migrate-to-cf` | Move a web project from Vercel to Cloudflare. |
 | `jz-launch-domain` | Connect a deployed site to a custom domain with DNS, HTTPS, and redirects. |
 | `jz-setup-site-analytics` | Set up analytics and search indexing after the final domain works. |
 | `jz-add-search-index` | Add IndexNow key verification, URL collection, and submission scripts to an existing site. |
+| `jz-track-conversion` | Design and implement conversion funnel event tracking. |
+| `jz-check-metrics` | Check live site metrics across GSC, Cloudflare, Umami, and Clarity. |
+| `jz-check-pagespeed` | Check PageSpeed, CrUX, and Cloudflare RUM data. |
 | `jz-add-gh-collaborator` | Prepare fork-only GitHub permissions for a cloud-agent developer account. |
 | `jz-commit-code` | Review workspace changes and create scoped commits after confirmation. |
 | `jz-push-code` | Verify, push, and run post-push indexing sync. |
 | `jz-audit-vercel-cost` | Explain Vercel usage, billed cost, Pro fees, and receipt/card charge differences. |
 | `jz-audit-cf-cost` | Read Cloudflare bills and GraphQL usage, check running resource costs in the current billing cycle, and identify billing anomalies. |
+| `jz-create-cf-token` | Create or update a minimal Cloudflare token for a project. |
 | `jz-build-personal-context` | Interview the user to create persistent profile and writing-style files for Codex, ChatGPT, Claude, and Claude Code. |
-| `jz-fetch-x` | Fetch the latest X posts for a given username or userId and save them as JSON or Markdown. |
-| `jz-pack-source` | Package the current source tree (no build artifacts, no secrets) into a zip for sharing with collaborators or a review agent. |
-| `jz-track-conversion` | Design and implement conversion funnel event tracking with naming conventions, 6 implementation patterns, cross-page state management, and attribution tracking. |
+| `jz-init-tailwind-theme` | Initialize or adjust Tailwind v4 theme tokens. |
+| `jz-find-revenue-site` | Find high-revenue sites similar to a given domain or product category. |
 | `jz-make-viral` | 32 viral product principles + 5 landing page design laws, topic-routed: landing page design, copywriting, pricing, product positioning, visual branding. |
+| `jz-check-cloud-agent` | Diagnose and operate cloud agent deployments. |
+
+## Other Topics
+
+| Path | Topic | Skills |
+| --- | --- | --- |
+| `content/` | Content production and distribution | `jz-fetch-x`, `jz-transcribe-audio`, `jz-wechat-archive-sync` |
+| `infra/` | Infrastructure operations | `jz-litellm-ops` |
 
 Recommended sequence for a new site:
 
@@ -55,24 +68,36 @@ git clone https://github.com/<owner>/<repo>.git
 
 Then copy or symlink the skills you want into the skills directory supported by your agent or runner.
 
-Skill directories at the repository root are developer-facing skills (deployment, code review, billing, packaging, etc.). Skills under `content/` are content & marketing skills (social media, blogging, WeChat). Both are valid skills and follow the same `SKILL.md` convention; the subdirectory is for organization only.
+Skill directories at the repository root are the development and site-building set: publishing, domains, analytics, search indexing, code review, billing, and related product/site work. Subdirectories are other one-person company topics. For example, `content/` contains content production and distribution skills, and `infra/` contains infrastructure operations skills. All of them are valid skills and follow the same `SKILL.md` convention; the directory only tells you the topic.
 
 Codex example:
 
 ```bash
 mkdir -p ~/.codex/skills
 cp -R jz-create-site ~/.codex/skills/
+cp -R jz-create-cf-site ~/.codex/skills/
+cp -R jz-migrate-to-cf ~/.codex/skills/
 cp -R jz-launch-domain ~/.codex/skills/
 cp -R jz-setup-site-analytics ~/.codex/skills/
 cp -R jz-add-search-index ~/.codex/skills/
+cp -R jz-track-conversion ~/.codex/skills/
+cp -R jz-check-metrics ~/.codex/skills/
+cp -R jz-check-pagespeed ~/.codex/skills/
 cp -R jz-add-gh-collaborator ~/.codex/skills/
 cp -R jz-commit-code ~/.codex/skills/
 cp -R jz-push-code ~/.codex/skills/
 cp -R jz-audit-vercel-cost ~/.codex/skills/
 cp -R jz-audit-cf-cost ~/.codex/skills/
+cp -R jz-create-cf-token ~/.codex/skills/
 cp -R jz-build-personal-context ~/.codex/skills/
-cp -R jz-pack-source ~/.codex/skills/
+cp -R jz-init-tailwind-theme ~/.codex/skills/
+cp -R jz-find-revenue-site ~/.codex/skills/
+cp -R jz-make-viral ~/.codex/skills/
+cp -R jz-check-cloud-agent ~/.codex/skills/
 cp -R content/jz-fetch-x ~/.codex/skills/
+cp -R content/jz-transcribe-audio ~/.codex/skills/
+cp -R content/jz-wechat-archive-sync ~/.codex/skills/
+cp -R infra/jz-litellm-ops ~/.codex/skills/
 ```
 
 If your runner can read this repository directly, no copy step is needed.
@@ -88,6 +113,14 @@ Use $jz-create-site to publish this local website.
 ```
 
 ```text
+Use $jz-create-cf-site to publish this local app on Cloudflare Workers.
+```
+
+```text
+Use $jz-migrate-to-cf to move this Vercel project to Cloudflare.
+```
+
+```text
 Use $jz-launch-domain to connect example.com to this deployed site.
 ```
 
@@ -97,6 +130,18 @@ Use $jz-setup-site-analytics to set up analytics and search indexing for example
 
 ```text
 Use $jz-add-search-index to add IndexNow support to this web app.
+```
+
+```text
+Use $jz-track-conversion to add signup and checkout funnel events.
+```
+
+```text
+Use $jz-check-metrics to check example.com metrics from GSC, Cloudflare, Umami, and Clarity.
+```
+
+```text
+Use $jz-check-pagespeed to check PageSpeed and Web Vitals for this URL.
 ```
 
 ```text
@@ -120,7 +165,27 @@ Use $jz-audit-cf-cost to check running resource costs in the current Cloudflare 
 ```
 
 ```text
+Use $jz-create-cf-token to create a minimal Cloudflare token for this project.
+```
+
+```text
 Use $jz-build-personal-context to interview me, create about.md, voice.md, anti-style.md in ~/Projects/aboutme, and enable all targets with -g.
+```
+
+```text
+Use $jz-init-tailwind-theme to initialize Tailwind v4 theme tokens.
+```
+
+```text
+Use $jz-find-revenue-site to find high-revenue sites similar to example.com.
+```
+
+```text
+Use $jz-make-viral to review this product page for positioning, pricing, copy, and shareability.
+```
+
+```text
+Use $jz-check-cloud-agent to diagnose the Hermes agent deployment.
 ```
 
 ```text
@@ -128,7 +193,15 @@ Use $jz-fetch-x to fetch the latest 100 X posts for @mercor_ai and save them as 
 ```
 
 ```text
-Use $jz-pack-source to package the source tree into a zip for review.
+Use $jz-transcribe-audio to transcribe this meeting recording.
+```
+
+```text
+Use $jz-wechat-archive-sync to update the WeChat article archive for this account.
+```
+
+```text
+Use $jz-litellm-ops to check LiteLLM model prices, key status, and recent spend logs.
 ```
 
 ## Configuration
@@ -148,16 +221,29 @@ Prepare only the credentials needed for the skills you run.
 | Skill | Required for the core path | Optional branches |
 | --- | --- | --- |
 | `jz-create-site` | GitHub CLI auth (`gh auth login`), Vercel CLI auth (`vercel login`), `GITHUB_OWNER`, `VERCEL_SCOPE` | Production app env vars copied to Vercel |
+| `jz-create-cf-site` | Cloudflare auth through Wrangler or `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | GitHub CLI auth when creating or connecting a repo |
+| `jz-migrate-to-cf` | Existing project checkout and Cloudflare auth | Vercel auth only when reading current Vercel settings |
 | `jz-launch-domain` | Hosting provider auth, DNS provider auth when DNS must be changed, registrar auth when nameservers must be changed | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `SPACESHIP_API_KEY`, `SPACESHIP_API_SECRET`, Cloudflare Email Routing permissions if inbound forwarding is requested, authenticated browser session for providers without API coverage |
 | `jz-setup-site-analytics` | Final public domain | Analytics credentials, Google OAuth/ADC for Search Console and Site Verification, Cloudflare DNS token for verification TXT records, `BING_WEBMASTER_API_KEY`, `SITE_INTEGRATIONS_CONFIG` with per-domain Clarity config, or `CLARITY_ID` and `CLARITY_TOKEN` |
 | `jz-add-search-index` | Writable repo with a known final host | `INDEXNOW_KEY` only if overriding the generated key; otherwise the skill creates a fresh key |
+| `jz-track-conversion` | Existing analytics setup and editable app code | Stripe or auth code access only when checkout/signup events need implementation |
+| `jz-check-metrics` | Provider credentials for selected sources | Google ADC, Cloudflare token, Umami credentials, Clarity token depending on providers |
+| `jz-check-pagespeed` | PageSpeed API key for higher quota | Cloudflare token for RUM data |
 | `jz-add-gh-collaborator` | GitHub CLI auth for `OWNER_ACCOUNT`; agent account details from local config or user input | `ADD_CLOUD_AGENT_COLLABORATOR_CONFIG`, `AGENT_GITHUB`, `AGENT_EMAIL` |
 | `jz-commit-code` | Git repository with local changes | None |
 | `jz-push-code` | Clean committed branch and remote push access | IndexNow/Search Console credentials only for public site URL sync |
 | `jz-audit-vercel-cost` | Vercel CLI auth and access to the relevant team/project usage | Receipt date, billing cycle day, platform fee override |
-| `jz-audit-cf-cost` | Cloudflare API Token (Account: Analytics: Read), `CLOUDFLARE_ACCOUNT_ID` | Optional hourly cost monitor (jinzheceo) |
+| `jz-audit-cf-cost` | Cloudflare API Token (Account: Analytics: Read), `CLOUDFLARE_ACCOUNT_ID` | Optional existing hourly cost monitor |
+| `jz-create-cf-token` | Bootstrap Cloudflare token with permission to create or edit account tokens | Project repo metadata for tighter token scoping |
+| `jz-build-personal-context` | Writable profile directory | `-g` when installing the generated profile into supported tools |
+| `jz-init-tailwind-theme` | Editable frontend project using Tailwind | Existing design-system files if the project already has one |
+| `jz-find-revenue-site` | Similarweb/Semrush/TrustMRR credentials or local cached exports | Local SQLite/CSV data paths for prior research |
+| `jz-make-viral` | Product, site, page, or positioning context | Topic-specific reference files are loaded as needed |
+| `jz-check-cloud-agent` | Local untracked deployment config and SSH access | Remote desktop/noVNC config only when opening a browser session |
 | `jz-fetch-x` | RapidAPI key for the Twittr X API | Optional local `.env` fallback inside the skill directory |
-| `jz-pack-source` | A git repository to package | None |
+| `jz-transcribe-audio` | `GLM_API_KEY` and `ffmpeg`/`ffprobe` | Skill-local `.env` fallback |
+| `jz-wechat-archive-sync` | API key for the archive provider | Existing state/cache files when resuming a sync |
+| `jz-litellm-ops` | Local untracked LiteLLM ops config and SSH/database access | Write access only when changing prices, fallback, budgets, or key state |
 
 Common variables:
 
@@ -180,11 +266,11 @@ Example `SITE_INTEGRATIONS_CONFIG` file:
 {
   "domains": {
     "example.com": {
-      "repo_dir": "/absolute/path/to/repo",
+      "repo_dir": "<repo-dir>",
       "clarity": {
         "project_id": "existing-clarity-project-id",
         "project_name": "Optional project name",
-        "token": "project-level-data-export-token"
+        "token": "<clarity-token>"
       }
     }
   }
@@ -194,7 +280,7 @@ Example `SITE_INTEGRATIONS_CONFIG` file:
 Point the variable at the JSON file:
 
 ```bash
-export SITE_INTEGRATIONS_CONFIG=/absolute/path/to/config/site-integrations.json
+export SITE_INTEGRATIONS_CONFIG=<config-dir>/site-integrations.json
 ```
 
 Keep files that contain Clarity tokens out of public commits.
@@ -203,7 +289,7 @@ Environment fallback:
 
 ```bash
 export CLARITY_ID=existing-clarity-project-id
-export CLARITY_TOKEN=project-level-data-export-token
+export CLARITY_TOKEN=<clarity-token>
 ```
 
 Never commit `.env`, local Vercel bindings, browser state, or generated auth caches. The repository `.gitignore` excludes `.env` and `.env.*`, while allowing `.env.example`.
