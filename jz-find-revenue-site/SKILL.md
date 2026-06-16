@@ -14,26 +14,26 @@ description: 获取与某个网站业务类型/服务对象相似的高收入网
 本 skill 的配置文件在：
 
 ```bash
-~/.config/skills/find-revenue-site/config.toml
+~/.config/skills/jz-find-revenue-site/config.toml
 ```
 
 凭据文件在：
 
 ```bash
-~/.config/skills/find-revenue-site/.env
+~/.config/skills/jz-find-revenue-site/.env
 ```
 
 首次使用时，将 skill 目录下的 `config.example.toml` 和 `.env.example` 复制到上述路径并填入实际值。
 
-也支持将配置文件放在 skill 本地目录（`config.toml` 和 `.env`），作为未配置全局文件时的回退。优先级：`~/.config/skills/find-revenue-site/` > skill 目录本地。
+也支持将配置文件放在 skill 本地目录（`config.toml` 和 `.env`），作为未配置全局文件时的回退。优先级：`~/.config/skills/jz-find-revenue-site/` > skill 目录本地。
 
 运行前先读取 config.toml。`paths.skill_root` 是 `ptr` CLI 代码所在的目录，所有 `uv run python -m ptr.cli` 命令都在这个目录下执行。`paths.data_root` 是主数据目录，sqlite、csv、raw/cache 和 reports 都在这里。配置中的路径允许使用 `~`，读取后必须展开成用户 home 目录。
 
 运行项目命令前加载凭据，但不要输出凭据：
 
 ```bash
-cd <paths.skill_root>   # 展开 ~/.claude/skills/find-revenue-site
-set -a; source <credentials.env_file>; set +a   # 展开 ~/.config/skills/find-revenue-site/.env
+cd <paths.skill_root>   # 展开 ~/.claude/skills/jz-find-revenue-site
+set -a; source <credentials.env_file>; set +a   # 展开 ~/.config/skills/jz-find-revenue-site/.env
 uv run --with requests python -m ptr.cli <subcommand> ...
 ```
 

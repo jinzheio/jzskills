@@ -16,9 +16,9 @@ description: 诊断和运维云端 agent 部署。登录服务器检查 OpenClaw
 
 ## 配置
 
-本 skill 依赖全局配置文件 `~/.config/skills/check-cloud-agent.yaml`。首次使用时，将 skill 目录下的 `config.example.yaml` 复制到该路径并填入实际值。
+本 skill 依赖全局配置文件 `~/.config/skills/jz-check-cloud-agent.yaml`。首次使用时，将 skill 目录下的 `config.example.yaml` 复制到该路径并填入实际值。
 
-也支持将配置文件放在 skill 本地目录（`config.yaml`），作为未配置全局文件时的回退。优先级：`~/.config/skills/check-cloud-agent.yaml` > `./config.yaml`（skill 目录）。
+也支持将配置文件放在 skill 本地目录（`config.yaml`），作为未配置全局文件时的回退。优先级：`~/.config/skills/jz-check-cloud-agent.yaml` > `./config.yaml`（skill 目录）。
 
 结构如下：
 
@@ -143,7 +143,7 @@ def validate_config(cfg: dict):
     if errors:
         msg = "\n\n".join(errors)
         msg += (
-            "\n\nEdit ~/.config/skills/check-cloud-agent.yaml and replace every"
+            "\n\nEdit ~/.config/skills/jz-check-cloud-agent.yaml and replace every"
             " placeholder with your real values.  See config.example.yaml in the"
             " skill directory for field descriptions."
         )
@@ -154,7 +154,7 @@ def load_config(deployment_id: str | None = None) -> dict:
     """Load check-cloud-agent config, validate required fields, and return the
     matching deployment.  Aborts if required fields are missing or placeholder."""
     # Priority: global config > skill-local config
-    global_path = os.path.expanduser("~/.config/skills/check-cloud-agent.yaml")
+    global_path = os.path.expanduser("~/.config/skills/jz-check-cloud-agent.yaml")
     local_path = os.path.join(os.path.dirname(__file__), "config.yaml")
     path = global_path if os.path.exists(global_path) else local_path
     if not os.path.exists(path):
@@ -209,13 +209,13 @@ cfg = load_config()
 
 若用户要求打开远程桌面、远程 Chrome 或 noVNC，读取
 [`references/open-remote-desktop.md`](references/open-remote-desktop.md)。
-连接地址和 SSH 参数从 `~/.config/skills/check-cloud-agent/<deployment>.yaml` 读取，不把实际地址写入 skill。
+连接地址和 SSH 参数从 `~/.config/skills/jz-check-cloud-agent/<deployment>.yaml` 读取，不把实际地址写入 skill。
 
 ## 步骤
 
 ### 0. 加载配置
 
-每次执行前，先从 `~/.config/skills/check-cloud-agent.yaml` 加载当前 deployment 配置。后续步骤中的路径、ID、名称均从 `cfg` 对象取值，不再使用硬编码。
+每次执行前，先从 `~/.config/skills/jz-check-cloud-agent.yaml` 加载当前 deployment 配置。后续步骤中的路径、ID、名称均从 `cfg` 对象取值，不再使用硬编码。
 
 如果机器离线或需要快速概览，可以用 `--list` 模式列出所有已知 deployment 的基本信息（不执行任何 SSH）。
 

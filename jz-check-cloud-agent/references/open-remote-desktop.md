@@ -4,7 +4,7 @@
 
 ## 私有配置
 
-从 `~/.config/skills/check-cloud-agent/<deployment>.yaml` 读取连接参数。文件名使用 deployment display name 的小写形式，例如 `prodaone.yaml`。
+从 `~/.config/skills/jz-check-cloud-agent/<deployment>.yaml` 读取连接参数。文件名使用 deployment display name 的小写形式，例如 `prodaone.yaml`。
 
 ```yaml
 deployment:

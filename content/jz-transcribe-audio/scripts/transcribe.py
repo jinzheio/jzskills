@@ -2,7 +2,7 @@
 """Transcribe audio files using GLM ASR API.
 
 Reads GLM_API_KEY from (in order):
-  1. ~/.config/skills/transcribe-audio/.env
+  1. ~/.config/skills/jz-transcribe-audio/.env
   2. <skill-root>/.env
   3. environment variable GLM_API_KEY
 """
@@ -17,7 +17,7 @@ from pathlib import Path
 
 import requests
 
-SKILL_NAME = "transcribe-audio"
+SKILL_NAME = "jz-transcribe-audio"
 CONFIG_ENV = Path.home() / ".config" / "skills" / SKILL_NAME / ".env"
 GLM_API = "https://open.bigmodel.cn/api/paas/v4/audio/transcriptions"
 MODEL = "glm-asr-2512"
@@ -38,7 +38,7 @@ def read_env(path: Path) -> dict:
 
 
 def resolve_api_key(skill_root: Path) -> str:
-    # 1. ~/.config/skills/transcribe-audio/.env
+    # 1. ~/.config/skills/jz-transcribe-audio/.env
     if CONFIG_ENV.exists():
         key = read_env(CONFIG_ENV).get("GLM_API_KEY", "")
         if key:

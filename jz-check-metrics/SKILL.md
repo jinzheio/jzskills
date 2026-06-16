@@ -33,7 +33,7 @@ description: "实时查看站点 metrics。覆盖 Google Search Console、Cloudf
 ## 流程
 
 1. 加载凭据：先读 `~/.config/skills/jz-check-metrics/.env`，缺失的变量 fallback 到 skill 根目录 `.env`
-2. **先跑脚本**：`python3 .claude/skills/jz-check-metrics/scripts/check_metrics.py --hostname <hostname> --days <N> --providers gsc,cloudflare,umami,clarity`
+2. **先跑脚本**：`python3 <skill-dir>/scripts/check_metrics.py --hostname <hostname> --days <N> --providers gsc,cloudflare,umami,clarity`
 3. **逐 provider 检查结果**：脚本输出为 JSON，遍历 `.providers` 和 `.errors` 中每个 provider
 4. **任何 provider 失败，必须尝试 fallback 后继续**：见下方 fallback 策略
 5. 汇总输出，标注每个 provider 的成功/失败状态和使用的获取方式
@@ -139,7 +139,7 @@ curl -s "$UMAMI_BASE_URL/api/websites/$ID/stats?startAt=$START&endAt=$END" -H "A
 ~/.config/skills/jz-check-metrics/.env
 
 # fallback
-.claude/skills/jz-check-metrics/.env
+<skill-dir>/.env
 ```
 
 `~/.config/skills/jz-check-metrics/.env` 已 `.gitignore`，不会被提交。
@@ -150,7 +150,7 @@ curl -s "$UMAMI_BASE_URL/api/websites/$ID/stats?startAt=$START&endAt=$END" -H "A
 
 调用方式：
 ```bash
-python3 .claude/skills/jz-check-metrics/scripts/check_metrics.py \
+python3 <skill-dir>/scripts/check_metrics.py \
   --hostname growagardencalculate.com \
   --days 28 \
   --providers gsc,cloudflare,umami,clarity

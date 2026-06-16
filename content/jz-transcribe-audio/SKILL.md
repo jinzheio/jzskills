@@ -10,13 +10,13 @@ Use this skill to turn audio or video into Chinese text via [GLM-ASR-2512](https
 ## Quick Start
 
 ```bash
-python3 /Users/hwang/Projects/jinzheceo/jzskills/content/transcribe-audio/scripts/transcribe.py ~/Downloads/录音.m4a
+python3 <skill-dir>/scripts/transcribe.py ~/Downloads/录音.m4a
 ```
 
 Output defaults to `<input-basename>.txt` next to the input file. Override with `-o`:
 
 ```bash
-python3 /Users/hwang/Projects/jinzheceo/jzskills/content/transcribe-audio/scripts/transcribe.py ~/Downloads/录音.m4a -o ~/Downloads/转录.txt
+python3 <skill-dir>/scripts/transcribe.py ~/Downloads/录音.m4a -o ~/Downloads/转录.txt
 ```
 
 ## How It Works
@@ -34,7 +34,7 @@ Via ffmpeg auto‑conversion: m4a, wav, mp3, mp4, mov, flac, ogg, webm, aac, and
 
 API key lookup order:
 
-1. `~/.config/skills/transcribe-audio/.env` ← recommended
+1. `~/.config/skills/jz-transcribe-audio/.env` ← recommended
 2. `<skill-root>/.env`
 3. `GLM_API_KEY` environment variable
 

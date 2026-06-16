@@ -80,7 +80,7 @@ Manage Account > Billing > Billable Usage > Budget alerts
 
 变更涉及的新资源是否已纳入每小时 GraphQL 成本监控：
 
-- 项目是否已有成本监控脚本（如 `jinzheceo` 的 `run_hourly_cost_monitor.sh`）
+- 项目是否已有成本监控脚本（如已部署的 `run_hourly_cost_monitor.sh`）
 - 新资源类型是否在监控查询的 dataset 覆盖范围内
 - 如果没有监控或新资源未覆盖，标记为 **WARN**，建议上线后添加对应 dataset：
   - DO → `durableObjectsPeriodicGroups`
@@ -131,7 +131,7 @@ Manage Account > Billing > Billable Usage > Budget alerts
 | 1 | 计费单位 | PASS | DO 按 duration 计费，当前免费额度 400k GB-s/month |
 | 2 | Kill Switch | PASS | WORKER_DISABLED 已配置 |
 | 3 | Budget Alert | WARN | 未检测到，建议手动设置 $1/$5/$10 |
-| 4 | 成本监控 | PASS | jinzheceo 每小时监控已覆盖 |
+| 4 | 成本监控 | PASS | 每小时监控已覆盖 |
 | 5 | Hibernation | PASS | 已使用 state.acceptWebSocket() |
 
 ### 待处理
